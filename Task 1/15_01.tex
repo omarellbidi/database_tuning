@@ -1,0 +1,140 @@
+\documentclass[11pt]{scrartcl}
+
+\usepackage[top=1.5cm]{geometry}
+\usepackage{url}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\youranswerhere}{[Your answer goes here \ldots]}
+\renewcommand{\thesubsection}{\arabic{subsection}}
+
+\lstdefinestyle{dbtsql}{
+  language=SQL,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{magenta!75!black},
+  stringstyle=\color{green!50!black},
+  showspaces=false,
+  showstringspaces=false,
+  commentstyle=\color{gray}}
+
+\title{
+  \textbf{\large Assignment 1} \\
+  Uploading Data to the Database \\
+  {\large Database Tuning}}
+
+\author{
+  Group Name (e.g. A1, B5, B3) \\
+  \large Lastname1 Firstname1, StudentID1 \\
+  \large Lastname2 Firstname2, StudentID2 \\
+  \large Lastname3 Firstname3, StudentID3
+}
+
+\begin{document}
+
+\maketitle
+
+\subsection*{Experimental Setup}
+
+Describe your experimental setup in a few lines.
+
+\youranswerhere{}
+
+\subsection*{Straightforward Implementation}
+
+\paragraph{Implementation}
+
+Describe in a few lines how this approach works and show the query that you use. You may also show small (!) code snippets if you think they help the understanding.
+
+\youranswerhere{}
+
+\begin{lstlisting}[style=dbtsql]
+[Your SQL query goes here ...]
+\end{lstlisting}
+
+\subsection*{Efficient Approaches}
+
+\subsubsection*{Efficient Approach 1: (NAME)}
+
+\paragraph{Implementation}
+
+Describe in a few lines how this approach works and show the query that you use. You may also show small (!) code snippets if you think they help the understanding.
+
+\youranswerhere{}
+
+\begin{lstlisting}[style=dbtsql]
+[Your SQL query goes here ...]
+\end{lstlisting}
+
+\paragraph{Why is this approach efficient?}
+
+Explain, why this approach is more efficient than the straightforward approach. Where does the system save the time? Be clear and precise!
+
+\emph{Important:} Cite the references that you used to answer this question, for example, using footnotes or the References section at the end of the report.
+
+\youranswerhere{}
+
+\paragraph{Tuning principle}
+
+Which tuning principle did you apply? Pick the one that describes this approach best (``think globally, fix locally'' is too general).
+
+\youranswerhere{}
+
+\subsubsection*{Portability}
+
+\paragraph{Implementation}
+
+Describe in a few lines what you needed to change (esp. towards SQL). You may also show small (!) code snippets if you think they help the understanding.
+
+\youranswerhere
+
+\begin{lstlisting}[style=dbtsql]
+[Your SQL query goes here ...]
+\end{lstlisting}
+
+\paragraph{Did you observe performance differences. If so: Why. If not: Why not?}
+
+
+
+\youranswerhere{}
+
+\subsection*{Runtime Experiment}
+
+\paragraph{Notes}
+
+\begin{itemize}
+  \item For the straightforward approach you are allowed to import only a subset of the tuples (e.g., 10.000 tuples) and estimate the overall runtime. The timings for all other approaches should be real measurements over the whole data set.
+  \item Specify the setting of the experiment, i.e., where is the database server (local machine, database server at the department), where is the client (wired/wireless network of the department)?
+\end{itemize}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{l|r}
+    Approach          & Runtime [sec] \tabularnewline
+    \hline
+    Straightforward   & \ldots \tabularnewline
+    Approach (NAME) & \ldots \tabularnewline
+    Local Approach & \ldots \tabularnewline
+  \end{tabular}
+\end{table}
+
+\subsection*{Time Spent on this Assignment}
+
+Time in hours per person: \textbf{XXX}
+
+\subsection*{References}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c}
+    \hline
+    \textbf{Important:} Reference your information sources! \tabularnewline
+    Remove this section if you use footnotes to reference your information sources. \tabularnewline
+    \hline
+  \end{tabular}
+\end{table}
+
+\end{document}
