@@ -6,6 +6,11 @@ conn = pymysql.connect(host="localhost",database="assignment_1_efficient",user="
 )
 
 cursor = conn.cursor()
+
+print("Emptying the old data")
+cursor.execute("TRUNCATE TABLE Auth;")
+conn.commit()
+
 #set time and rows
 start_time = time.time()
 rows_inserted = 0
