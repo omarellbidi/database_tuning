@@ -1,0 +1,202 @@
+\documentclass[11pt]{scrartcl}
+
+\usepackage[top=1.5cm]{geometry}
+\usepackage{url}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\youranswerhere}{[Your answer goes here \ldots]}
+\renewcommand{\thesubsection}{\arabic{subsection}}
+
+\lstdefinestyle{dbtsql}{
+  language=SQL,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{magenta!75!black},
+  stringstyle=\color{green!50!black},
+  showspaces=false,
+  showstringspaces=false,
+  commentstyle=\color{gray}}
+
+\title{
+  \textbf{\large Assignment 2} \\
+  Query Tuning \\
+  {\large Database Tuning}
+}
+
+\author{
+  Group Name (e.g. A1, B5, B3) \\
+  \large Lastname1 Firstname1, StudentID1 \\
+  \large Lastname2 Firstname2, StudentID2 \\
+  \large Lastname3 Firstname3, StudentID3
+}
+
+\begin{document}
+
+\maketitle\thispagestyle{empty}
+
+\subsection*{Creating Tables and Indexes}
+
+SQL statements used to create the tables \texttt{Employee}, \texttt{Student}, and \texttt{Techdept}, and the indexes on the tables:
+
+\begin{lstlisting}[style=dbtsql]
+[Your SQL queries go here ...]
+\end{lstlisting}
+
+\subsection*{Populating the Tables}
+
+How did you fill the tables? What values did you use? Give a short description of your program.
+
+\youranswerhere{}
+
+\subsection*{Queries}
+
+\subsubsection*{Query 1}
+
+\paragraph{Original Query}
+
+Give the first type of query that might be hard for your database to optimize.
+
+\begin{lstlisting}[style=dbtsql]
+[Your original SQL query goes here ...]
+\end{lstlisting}
+
+\paragraph{Rewritten Query}
+
+Give the rewritten query.
+
+\begin{lstlisting}[style=dbtsql]
+[Your rewritten SQL query goes here ...]
+\end{lstlisting}
+
+\paragraph{Evaluation of the Execution Plans}
+
+Give the execution plan of the original query.
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your execution plan of the original query goes here ...]
+\end{verbatim}}
+
+Give an interpretation of the execution plan, i.e., describe how the original query is evaluated.
+
+\youranswerhere{}
+
+Give the execution plan of the rewritten query.
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your execution plan of the rewritten query goes here ...]
+\end{verbatim}}
+
+Give an interpretation of the execution plan, i.e., describe how the rewritten query is evaluated.
+
+\youranswerhere{}
+
+Discuss, how the execution plan changed between the original and the rewritten query. In both the interpretation of the query plans and the discussion focus on the crucial parts, i.e., the parts of the query plans that cause major runtime differences.
+
+\youranswerhere{}
+
+\paragraph{Experiment}
+
+Give the runtimes of the original and the rewritten query.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{l|r}
+    & Runtime [sec] \tabularnewline
+    \hline
+    Original query & \ldots \tabularnewline
+    Rewritten query & \ldots \tabularnewline
+  \end{tabular}
+\end{table}
+
+Discuss, why the rewritten query is (or is not) faster than the original query.
+
+\youranswerhere{}
+
+\subsubsection*{Query 2}
+
+\paragraph{Original Query}
+
+Give the second type of query that might be hard for your database to optimize.
+
+\begin{lstlisting}[style=dbtsql]
+[Your original SQL query goes here ...]
+\end{lstlisting}
+
+\paragraph{Rewritten Query}
+
+Give the rewritten query.
+
+\begin{lstlisting}[style=dbtsql]
+[Your rewritten SQL query goes here ...]
+\end{lstlisting}
+
+\paragraph{Evaluation of the Execution Plans}
+
+Give the execution plan of the original query.
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your execution plan of the original query goes here ...]
+\end{verbatim}}
+
+Give an interpretation of the execution plan, i.e., describe how the original query is evaluated.
+
+\youranswerhere{}
+
+Give the execution plan of the rewritten query.
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your execution plan of the rewritten query goes here ...]
+\end{verbatim}}
+
+Give an interpretation of the execution plan, i.e., describe how the rewritten query is evaluated.
+
+\youranswerhere{}
+
+Discuss, how the execution plan changed between the original and the rewritten query. In both the interpretation of the query plans and the discussion focus on the crucial parts, i.e., the parts of the query plans that cause major runtime differences.
+
+\youranswerhere{}
+
+\paragraph{Experiment}
+
+Give the runtimes of the original and the rewritten query.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{l|r}
+    & Runtime [sec] \tabularnewline
+    \hline
+    Original query  & \ldots \tabularnewline
+    Rewritten query & \ldots \tabularnewline
+  \end{tabular}
+\end{table}
+
+Discuss, why the rewritten query is (or is not) faster than the original query.
+
+\youranswerhere{}
+
+\subsection*{Time Spent on this Assignment}
+
+Time in hours per person: \textbf{XXX}
+
+\subsection*{References}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c}
+    \hline
+    \textbf{Important:} Reference your information sources! \tabularnewline
+    Remove this section if you use footnotes to reference your information sources. \tabularnewline
+    \hline
+  \end{tabular}
+\end{table}
+
+\end{document}
+

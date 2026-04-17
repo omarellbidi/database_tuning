@@ -1,0 +1,6 @@
+mysql-connector-python
+json
+pandas
+psycopg2-binary
+configparser
+time
