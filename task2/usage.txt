@@ -1,0 +1,7 @@
+========= How to run =========
+- import all libraries specified in requirements.txt
+- modify or make new query you want to analyse in report_query_analysis()
+- modify conf.ini for postgres, connect() in asgn2_maria.py for mariadb
+- run the script
+    - example: rm log_<db>.txt && python asgn2_<db>.py >> log_<db>.txt (in mac terminal)
+    - the code will create tsv file and populate tables if not exist

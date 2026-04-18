@@ -37,17 +37,18 @@ def create_tables(conn: any) -> None:
     cur.execute("CREATE UNIQUE INDEX idx_ssnum_emp ON employee (ssnum);")
     cur.execute("CREATE UNIQUE INDEX idx_name_emp ON employee (name);")
     cur.execute("CREATE INDEX idx_dept_emp ON employee (dept);")
-
+    
     cur.execute("DROP TABLE IF EXISTS student;")
-    cur.execute("CREATE TABLE student (ssnum INT,name TEXT,course TEXT,grade INT);")
+    # We use german like grading system (1.0, 1.1, ..., 5.0)
+    # where 1.0 is the best grade and 5.0 is the worst grade.
+    cur.execute("CREATE TABLE student (ssnum INT,name TEXT,course TEXT,grade FLOAT);")
     cur.execute("CREATE UNIQUE INDEX idx_ssnum_stud ON student (ssnum);")
     cur.execute("CREATE UNIQUE INDEX idx_name_stud ON student (name);")
     
-
     cur.execute("DROP TABLE IF EXISTS techdept;")
     cur.execute("CREATE TABLE techdept (dept TEXT,manager TEXT,location TEXT);")
     cur.execute("CREATE UNIQUE INDEX idx_dept_tech ON techdept (dept);")
-    
+
     cur.fetchall()
     print("Tables and indicies created successfully.")
     cur.close()
@@ -257,19 +258,6 @@ def init_db(conn: any) -> None:
 
 
 # ------ Orchestrator --------------------------------------------------
-def report_query_analysis(conn) -> None:
-    avg_query_bad        = "ANALYZE FORMAT=JSON SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept = 'Tech1';"
-    avg_query_good       = "ANALYZE FORMAT=JSON SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;"
-    index_use_query_bad  = "ANALYZE FORMAT=JSON SELECT Employee.ssnum FROM Employee WHERE Employee.name = 'Employee123' OR Employee.dept = 'NonTech1';"
-    index_use_query_good = "ANALYZE FORMAT=JSON SELECT Employee.ssnum FROM Employee WHERE Employee.name = 'Employee123' UNION SELECT Employee.ssnum FROM Employee WHERE Employee.dept = 'NonTech1';"
- 
-    print("Analysis of queries", "=" * 62)
-    report_analysis(analyse_query(conn, avg_query_bad),        "Average Query (bad)",        avg_query_bad)
-    report_analysis(analyse_query(conn, avg_query_good),       "Average Query (good)",       avg_query_good)
-    report_analysis(analyse_query(conn, index_use_query_bad),  "Index Use Query (bad)",      index_use_query_bad)
-    report_analysis(analyse_query(conn, index_use_query_good), "Index Use Query (good)",     index_use_query_good)
-
-
 def init_db(conn: any) -> None:
     create_tables(conn)
     insert_data(conn)
@@ -278,20 +266,21 @@ def init_db(conn: any) -> None:
 def report_query_analysis(conn: any) -> None:
     avg_query_bad = "ANALYZE FORMAT=JSON SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept = 'Tech1';" 
     avg_query_good = "ANALYZE FORMAT=JSON SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;"
-    index_use_query_bad = "ANALYZE FORMAT=JSON SELECT Employee.ssnum FROM Employee WHERE Employee.name = 'Employee123' OR Employee.dept = 'NonTech1';"
-    index_use_query_good ="ANALYZE FORMAT=JSON SELECT Employee.ssnum FROM Employee WHERE Employee.name = 'Employee123' UNION SELECT Employee.ssnum FROM Employee WHERE Employee.dept = 'NonTech1';"
+    
+    join_query_bad = "ANALYZE FORMAT=JSON SELECT * FROM employee INNER JOIN student ON (employee.name = student.name);"    
+    join_query_good = "ANALYZE FORMAT=JSON SELECT * FROM employee INNER JOIN student ON (employee.ssnum = student.ssnum);"
 
     print("Analysis of queries", "="*62)
     report_analysis(analyse_query(conn, avg_query_bad), "Average Query Bad", avg_query_bad)
     report_analysis(analyse_query(conn, avg_query_good), "Average Query Good", avg_query_good)
 
-    report_analysis(analyse_query(conn, index_use_query_bad), "Index Use Query Bad", index_use_query_bad)
-    report_analysis(analyse_query(conn, index_use_query_good), "Index Use Query Good", index_use_query_good)
+    report_analysis(analyse_query(conn, join_query_bad), "Join Query Bad", join_query_bad)
+    report_analysis(analyse_query(conn, join_query_good), "Join Query Good", join_query_good)
 
 
 
 if __name__ == "__main__":
     conn = connect()
-    #init_db(conn) # Uncomment to create tables and insert data
+    init_db(conn) # Uncomment to create tables and insert data
     report_query_analysis(conn)
     disconnect(conn)

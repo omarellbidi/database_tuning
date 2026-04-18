@@ -242,16 +242,16 @@ def report_query_analysis(conn: any) -> None:
     # Because some Python string formatting and concatenation can be incompatible with SQL, 
     # we use full SQL query to avoid the error.
     avg_query_bad = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept = 'Tech1';" 
-    avg_query_good = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;"
-    index_use_query_bad = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT Employee.ssnum FROM Employee WHERE Employee.name = 'Employee123' OR Employee.dept = 'NonTech1';"
-    index_use_query_good ="EXPLAIN (ANALYZE, FORMAT JSON) SELECT Employee.ssnum FROM Employee WHERE Employee.name = 'Employee123' UNION SELECT Employee.ssnum FROM Employee WHERE Employee.dept = 'NonTech1';"
+    avg_query_good = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;"    
+    join_query_bad = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT * FROM employee JOIN student ON employee.name = student.name;"    
+    join_query_good = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT * FROM employee JOIN student ON employee.ssnum = student.ssnum;"
 
     print("Analysis of queries", "="*62)
     report_analysis(analyse_query(conn, avg_query_bad), "Average Query Bad", avg_query_bad)
     report_analysis(analyse_query(conn, avg_query_good), "Average Query Good", avg_query_good)
 
-    report_analysis(analyse_query(conn, index_use_query_bad), "Index Use Query Bad", index_use_query_bad)
-    report_analysis(analyse_query(conn, index_use_query_good), "Index Use Query Good", index_use_query_good)
+    report_analysis(analyse_query(conn, join_query_bad), "Join Query Bad", join_query_bad)
+    report_analysis(analyse_query(conn, join_query_good), "Join Query Good", join_query_good)
 
 
 if __name__ == "__main__":
