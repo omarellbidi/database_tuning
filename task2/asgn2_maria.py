@@ -92,7 +92,7 @@ def fmt_cost(value) -> str:
 # ------ Query plan analysis -------------------------------------------------------
 def analyse_query(conn, query: str) -> dict:
     cur = conn.cursor()
-    cur.execute(query)
+    cur.execute(f"ANALYZE FORMAT=JSON {query}")
     rows = cur.fetchone()
     return json.loads(rows[0])
  
@@ -264,11 +264,11 @@ def init_db(conn: any) -> None:
 
 
 def report_query_analysis(conn: any) -> None:
-    avg_query_bad = "ANALYZE FORMAT=JSON SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept = 'Tech1';" 
-    avg_query_good = "ANALYZE FORMAT=JSON SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;"
+    avg_query_bad = "SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept = 'Tech1';" 
+    avg_query_good = "SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;"
     
-    join_query_bad = "ANALYZE FORMAT=JSON SELECT * FROM employee INNER JOIN student ON (employee.name = student.name);"    
-    join_query_good = "ANALYZE FORMAT=JSON SELECT * FROM employee INNER JOIN student ON (employee.ssnum = student.ssnum);"
+    join_query_bad = "SELECT * FROM employee INNER JOIN student ON (employee.name = student.name);"    
+    join_query_good = "SELECT * FROM employee INNER JOIN student ON (employee.ssnum = student.ssnum);"
 
     print("Analysis of queries", "="*62)
     report_analysis(analyse_query(conn, avg_query_bad), "Average Query Bad", avg_query_bad)

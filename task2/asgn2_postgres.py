@@ -91,8 +91,10 @@ def insert_data(conn: any, employee_path="data/employee.tsv", student_path="data
 
 # ------ Query analysis ---------------------------------------------------
 # Fetch
+# If you want to add or change the query,
+# DO NOT USE python string concatenation (\"+\").
 def analyse_query(conn, query: str) -> dict:
-    explain_sql = query
+    explain_sql = f"EXPLAIN (ANALYZE, FORMAT JSON) {query}"
 
     with conn.cursor() as cur:
         cur.execute(explain_sql)
@@ -145,7 +147,22 @@ def print_node(node: dict, depth: int = 0) -> None:
  
     if node.get("Index Searches") is not None:
         print(f"{vpd}Index searches:{node['Index Searches']}")
- 
+
+    # Bucket and batch status (optional)
+    buckets = node.get(f"{node_type} Buckets", 0)
+    orig_buckets = node.get(f"Original {node_type} Buckets", 0)
+    if buckets != 0 or orig_buckets != 0:
+        print(f"{vpd}Buckets:       {buckets} (Original={orig_buckets})")
+    batches =  node.get(f"{node_type} Batches", 0)
+    orig_batches = node.get(f"Original {node_type} Batches", 0)
+    if batches != 0 or orig_batches != 0:
+        print(f"{vpd}Batches:       {batches} (Original={orig_batches})")
+
+    # Peak memory usage (optional)
+    peak_memory = node.get("Peak Memory Usage", 0)
+    if peak_memory != 0:
+        print(f"{vpd}Peak memory:   {peak_memory} KB")
+
     # Buffer stats
     print(f"{vpd}Shared bufs:   {fmt_blocks(node, 'Shared')}")
     if any(node.get(f"Local {s} Blocks", 0) for s in ("Hit", "Read", "Dirtied", "Written")):
@@ -157,7 +174,7 @@ def print_node(node: dict, depth: int = 0) -> None:
     flags = []
     if node.get("Parallel Aware"): flags.append("Parallel Aware")
     if node.get("Async Capable"):  flags.append("Async Capable")
-    if node.get("Disabled"):       flags.append("⚠ DISABLED")
+    if node.get("Disabled"):       flags.append("DISABLED")
     if flags:
         print(f"{vpd}Flags:         {', '.join(flags)}")
  
@@ -239,12 +256,10 @@ def init_db(conn: any):
 
 
 def report_query_analysis(conn: any) -> None:
-    # Because some Python string formatting and concatenation can be incompatible with SQL, 
-    # we use full SQL query to avoid the error.
-    avg_query_bad = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept = 'Tech1';" 
-    avg_query_good = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;"    
-    join_query_bad = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT * FROM employee JOIN student ON employee.name = student.name;"    
-    join_query_good = "EXPLAIN (ANALYZE, FORMAT JSON) SELECT * FROM employee JOIN student ON employee.ssnum = student.ssnum;"
+    avg_query_bad = "SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept LIKE 'Tech%';" 
+    avg_query_good = "SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept LIKE 'Tech%' GROUP BY dept;"    
+    join_query_bad = "SELECT * FROM employee JOIN student ON employee.name = student.name;"    
+    join_query_good = "SELECT * FROM employee JOIN student ON employee.ssnum = student.ssnum;"
 
     print("Analysis of queries", "="*62)
     report_analysis(analyse_query(conn, avg_query_bad), "Average Query Bad", avg_query_bad)
