@@ -1,0 +1,187 @@
+1 - Erstellung der Tabellen:
+
+postgres=# CREATE TABLE Employee (
+    ssnum    INTEGER PRIMARY KEY,
+    name     TEXT,
+    manager  TEXT,
+    dept     TEXT,
+    salary   INTEGER,
+    numfriends INTEGER
+);
+
+CREATE UNIQUE INDEX employee_name_uniq ON Employee(name);
+CREATE INDEX employee_dept_idx ON Employee(dept);
+
+CREATE TABLE Student (
+    ssnum    INTEGER PRIMARY KEY,
+    name     TEXT,
+    course   TEXT,
+    grade    INTEGER
+);
+
+CREATE UNIQUE INDEX student_name_uniq ON Student(name);
+
+CREATE TABLE Techdept (
+    dept     TEXT PRIMARY KEY,
+    manager  TEXT,
+    location TEXT
+);
+2 - Datengenerierung:
+
+-- Techdept (10 technische Abteilungen)
+INSERT INTO Techdept (dept, manager, location)
+SELECT
+    'tech' || n                  AS dept,
+    'mgr' || n                   AS manager,
+    'loc' || n                   AS location
+FROM generate_series(1, 10) AS n;
+
+-- 100.000 Employees
+INSERT INTO Employee (ssnum, name, manager, dept, salary, numfriends)
+SELECT
+    n                                                       AS ssnum,
+    substring(md5(random()::text), 1, 10)                  AS name,
+    'mgr' || (n % 100 + 1)                                 AS manager,
+    CASE
+        WHEN n % 10 = 0 THEN 'tech' || (floor(random() * 10 + 1)::int)
+        ELSE 'non_tech' || (n % 50 + 1)
+    END                                                     AS dept,
+    floor(30000 + random() * 70000)::int                    AS salary,
+    floor(random() * 50)::int                               AS numfriends
+FROM generate_series(1, 100000) AS n;
+
+INSERT INTO Student (ssnum, name, course, grade)
+SELECT
+    n AS ssnum,
+    substring(md5(random()::text), 1, 10) AS name,
+    CASE
+        WHEN n % 3 = 0 THEN 'db'
+        WHEN n % 3 = 1 THEN 'algo'
+        ELSE 'net'
+    END AS course,
+    floor(1 + random() * 5)::int AS grade
+FROM generate_series(1, 100000) AS n;
+
+3 - Queries (Original und Rewrite)
+
+QUERY A
+
+-- Original
+SELECT E.ssnum
+FROM Employee E
+WHERE EXISTS (
+    SELECT 1
+    FROM Techdept T
+    WHERE T.dept = E.dept
+);
+
+-- Rewrite
+SELECT E.ssnum
+FROM Employee E
+JOIN Techdept T
+  ON T.dept = E.dept;
+
+QUERY B
+
+-- Original
+SELECT E.ssnum
+FROM Employee E
+WHERE EXISTS (
+    SELECT 1
+    FROM Techdept T
+    WHERE T.dept = E.dept
+);
+
+-- Rewrite
+SELECT E.ssnum
+FROM Employee E
+WHERE E.dept IN (
+    SELECT T.dept
+    FROM Techdept T
+);
+
+4 - Laufzeitanalyse mit Ergebnissen:
+
+Query A (Original)
+
+EXPLAIN ANALYZE
+SELECT E.ssnum
+FROM Employee E
+WHERE EXISTS (
+    SELECT 1
+    FROM Techdept T
+    WHERE T.dept = E.dept
+);
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=24.62..2123.84 rows=100000 width=4) (actual time=0.088..37.812 rows=10000 loops=1)
+   Hash Cond: (e.dept = t.dept)
+   ->  Seq Scan on employee e  (cost=0.00..1835.00 rows=100000 width=14) (actual time=0.027..13.923 rows=100000 loops=1)
+   ->  Hash  (cost=16.50..16.50 rows=650 width=32) (actual time=0.031..0.034 rows=10 loops=1)
+         Buckets: 1024  Batches: 1  Memory Usage: 9kB
+         ->  Seq Scan on techdept t  (cost=0.00..16.50 rows=650 width=32) (actual time=0.013..0.018 rows=10 loops=1)
+ Planning Time: 0.390 ms
+ Execution Time: 38.696 ms
+(8 rows)
+
+
+Query A (Rewrite)
+
+EXPLAIN ANALYZE
+SELECT E.ssnum
+FROM Employee E
+JOIN Techdept T
+  ON T.dept = E.dept;
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=24.62..2123.84 rows=100000 width=4) (actual time=0.054..31.574 rows=10000 loops=1)
+   Hash Cond: (e.dept = t.dept)
+   ->  Seq Scan on employee e  (cost=0.00..1835.00 rows=100000 width=14) (actual time=0.015..11.664 rows=100000 loops=1)
+   ->  Hash  (cost=16.50..16.50 rows=650 width=32) (actual time=0.020..0.024 rows=10 loops=1)
+         Buckets: 1024  Batches: 1  Memory Usage: 9kB
+         ->  Seq Scan on techdept t  (cost=0.00..16.50 rows=650 width=32) (actual time=0.009..0.012 rows=10 loops=1)
+ Planning Time: 0.227 ms
+ Execution Time: 32.263 ms
+(8 rows)
+
+Query B (Original)
+
+EXPLAIN ANALYZE
+SELECT E.ssnum
+FROM Employee E
+WHERE EXISTS (
+    SELECT 1
+    FROM Techdept T
+    WHERE T.dept = E.dept
+);
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=24.62..2123.84 rows=100000 width=4) (actual time=0.060..34.062 rows=10000 loops=1)
+   Hash Cond: (e.dept = t.dept)
+   ->  Seq Scan on employee e  (cost=0.00..1835.00 rows=100000 width=14) (actual time=0.019..12.267 rows=100000 loops=1)
+   ->  Hash  (cost=16.50..16.50 rows=650 width=32) (actual time=0.020..0.023 rows=10 loops=1)
+         Buckets: 1024  Batches: 1  Memory Usage: 9kB
+         ->  Seq Scan on techdept t  (cost=0.00..16.50 rows=650 width=32) (actual time=0.009..0.011 rows=10 loops=1)
+ Planning Time: 0.413 ms
+ Execution Time: 34.841 ms
+(8 rows)
+
+Query B (Rewrite) 
+EXPLAIN ANALYZE
+SELECT E.ssnum
+FROM Employee E
+WHERE E.dept IN (
+    SELECT T.dept
+    FROM Techdept T
+);
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=24.62..2123.84 rows=100000 width=4) (actual time=0.065..30.488 rows=10000 loops=1)
+   Hash Cond: (e.dept = t.dept)
+   ->  Seq Scan on employee e  (cost=0.00..1835.00 rows=100000 width=14) (actual time=0.015..10.560 rows=100000 loops=1)
+   ->  Hash  (cost=16.50..16.50 rows=650 width=32) (actual time=0.029..0.030 rows=10 loops=1)
+         Buckets: 1024  Batches: 1  Memory Usage: 9kB
+         ->  Seq Scan on techdept t  (cost=0.00..16.50 rows=650 width=32) (actual time=0.009..0.013 rows=10 loops=1)
+ Planning Time: 0.270 ms
+ Execution Time: 31.184 ms
+(8 rows)
