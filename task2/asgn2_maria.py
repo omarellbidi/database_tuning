@@ -148,8 +148,17 @@ def print_nested_loop(nested_loop: list, depth: int) -> None:
     """Print all tables inside a nested_loop list."""
     for entry in nested_loop:
         table = entry.get("table")
+        duplicates_removal = entry.get("duplicates_removal")
         if table:
             print_table(table, depth)
+        elif duplicates_removal:
+            print_duplicates_removal(duplicates_removal, depth)
+
+
+def print_duplicates_removal(duplicates_removal: dict, depth: int) -> None:
+    """Print a duplicates_removal node and its children."""
+    print("Duplicates Removal")
+    print_nested_loop(duplicates_removal, depth)
  
  
 def print_filesort(fs: dict, depth: int) -> None:
@@ -205,10 +214,15 @@ def print_nodes(node: dict, depth: int = 0) -> None:
     print(f"{vpd}Total time:  {fmt_ms(r_ms)}")
     print()
  
+
     # Nested loop directly in query_block
     nested = qb.get("nested_loop")
     if nested:
         print_nested_loop(nested, depth + 1)
+
+    duplicates_removal = qb.get("duplicates_removal")
+    if duplicates_removal:
+        print_duplicates_removal(duplicates_removal, depth + 1)
  
     # Filesort in query_block
     filesort = qb.get("filesort")
@@ -216,7 +230,7 @@ def print_nodes(node: dict, depth: int = 0) -> None:
         print_filesort(filesort, depth + 1)
  
     # TODO: Union / subqueries (extend here as needed)
-    for key in ("union_result", "subquery", "duplicates_removal"):
+    for key in ("union_/result", "subquery", "duplicates_removal"):
         if qb.get(key):
             print("Warning: subquery, union, and duplicates_removal is not expanded")
             print(f"{vpd}[{key}]: (not expanded)")
@@ -266,21 +280,22 @@ def init_db(conn: any) -> None:
 def report_query_analysis(conn: any) -> None:
     avg_query_bad = "SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept = 'Tech1';" 
     avg_query_good = "SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;"
-    
-    join_query_bad = "SELECT * FROM employee INNER JOIN student ON (employee.name = student.name);"    
-    join_query_good = "SELECT * FROM employee INNER JOIN student ON (employee.ssnum = student.ssnum);"
+    join_query_bad = "SELECT E.ssnum FROM Employee E WHERE EXISTS (SELECT 1 FROM Techdept T WHERE T.dept = E.dept);" 
+    join_query_good_1 = "SELECT E.ssnum FROM Employee E JOIN Techdept T ON T.dept = E.dept;"
+    join_query_good_2 = "SELECT E.ssnum FROM Employee E WHERE E.dept IN (SELECT T.dept FROM Techdept T);"
 
     print("Analysis of queries", "="*62)
     report_analysis(analyse_query(conn, avg_query_bad), "Average Query Bad", avg_query_bad)
     report_analysis(analyse_query(conn, avg_query_good), "Average Query Good", avg_query_good)
 
-    report_analysis(analyse_query(conn, join_query_bad), "Join Query Bad", join_query_bad)
-    report_analysis(analyse_query(conn, join_query_good), "Join Query Good", join_query_good)
+    report_analysis(analyse_query(conn, join_query_bad), "Join Query Bad (EXISTS)", join_query_bad)
+    report_analysis(analyse_query(conn, join_query_good_1), "Join Query Good (JOIN)", join_query_good_1)
+    report_analysis(analyse_query(conn, join_query_good_2), "Join Query Good (IN)", join_query_good_2)
 
 
 
 if __name__ == "__main__":
     conn = connect()
-    init_db(conn) # Uncomment to create tables and insert data
+    #init_db(conn) # Uncomment to create tables and insert data
     report_query_analysis(conn)
     disconnect(conn)

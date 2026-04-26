@@ -258,15 +258,17 @@ def init_db(conn: any):
 def report_query_analysis(conn: any) -> None:
     avg_query_bad = "SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept LIKE 'Tech%';" 
     avg_query_good = "SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept LIKE 'Tech%' GROUP BY dept;"    
-    join_query_bad = "SELECT * FROM employee JOIN student ON employee.name = student.name;"    
-    join_query_good = "SELECT * FROM employee JOIN student ON employee.ssnum = student.ssnum;"
+    join_query_bad = "SELECT E.ssnum FROM Employee E WHERE EXISTS (SELECT 1 FROM Techdept T WHERE T.dept = E.dept);" 
+    join_query_good_1 = "SELECT E.ssnum FROM Employee E JOIN Techdept T ON T.dept = E.dept;"
+    join_query_good_2 = "SELECT E.ssnum FROM Employee E WHERE E.dept IN (SELECT T.dept FROM Techdept T);"
 
     print("Analysis of queries", "="*62)
     report_analysis(analyse_query(conn, avg_query_bad), "Average Query Bad", avg_query_bad)
     report_analysis(analyse_query(conn, avg_query_good), "Average Query Good", avg_query_good)
 
-    report_analysis(analyse_query(conn, join_query_bad), "Join Query Bad", join_query_bad)
-    report_analysis(analyse_query(conn, join_query_good), "Join Query Good", join_query_good)
+    report_analysis(analyse_query(conn, join_query_bad), "Join Query Bad (EXISTS)", join_query_bad)
+    report_analysis(analyse_query(conn, join_query_good_1), "Join Query Good (JOIN)", join_query_good_1)
+    report_analysis(analyse_query(conn, join_query_good_2), "Join Query Good (IN)", join_query_good_2)
 
 
 if __name__ == "__main__":
