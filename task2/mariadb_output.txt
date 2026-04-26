@@ -1,0 +1,189 @@
+Python 3.13.6 (v3.13.6:4e665351082, Aug  6 2025, 11:22:35) [Clang 16.0.0 (clang-1600.0.26.6)] on darwin
+Enter "help" below or click "Help" above for more information.
+
+========= RESTART: /Users/omarellbidi/Desktop/UNI/Task 2/asgn2_maria.py ========
+Tables and indices created successfully.
+Inserting data into MariaDB...
+Data inserted successfully.
+Analysis of queries ==============================================================
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Average Query Bad
+  SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept = 'Tech1';
+==============================================================
+  Optimization time: 3.9888 ms
+--------------------------------------------------------------
+Query Block  (select_id=1)
+    Cost:         1.2137175
+    Loops:        1
+    Total time:   5.8535 ms
+
+    └── Filesort
+        Sort key:      employee.dept
+        Loops:         1
+        Time:          0.0275 ms
+        Output rows:   1
+        Buffer size:   15Kb
+        Sort mode:     packed_sort_key,rowid
+        Priority queue:False
+        Temporary table → nested loop:
+            └── Table: Employee  [ref]
+                Key:           idx_dept_emp  (len=3075)
+                Possible keys: idx_dept_emp
+                Used parts:    dept
+                Ref:           const
+                Loops:         planned=1  actual=1
+                Rows:          estimated=1005  actual=1005
+                Cost:          1.2137175
+                Time:          table=1.7499 ms  other=3.8054 ms
+                Filtered:      estimated=100%  actual=100%
+                Engine stats:  pages_accessed=2018
+                Condition:     employee.dept <=> 'Tech1' and employee.dept = 'Tech1'
+
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Average Query Good
+  SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept = 'Tech1' GROUP BY dept;
+==============================================================
+  Optimization time: 0.1751 ms
+--------------------------------------------------------------
+Query Block  (select_id=1)
+    Cost:         1.2137175
+    Loops:        1
+    Total time:   13.8174 ms
+
+    └── Filesort
+        Sort key:      employee.dept
+        Loops:         1
+        Time:          0.0307 ms
+        Output rows:   1
+        Buffer size:   15Kb
+        Sort mode:     packed_sort_key,rowid
+        Priority queue:False
+        Temporary table → nested loop:
+            └── Table: Employee  [ref]
+                Key:           idx_dept_emp  (len=3075)
+                Possible keys: idx_dept_emp
+                Used parts:    dept
+                Ref:           const
+                Loops:         planned=1  actual=1
+                Rows:          estimated=1005  actual=1005
+                Cost:          1.2137175
+                Time:          table=5.9789 ms  other=7.1687 ms
+                Filtered:      estimated=100%  actual=100%
+                Engine stats:  pages_accessed=2018
+                Condition:     employee.dept <=> 'Tech1' and employee.dept = 'Tech1'
+
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Join Query Bad (EXISTS)
+  SELECT E.ssnum FROM Employee E WHERE EXISTS (SELECT 1 FROM Techdept T WHERE T.dept = E.dept);
+==============================================================
+  Optimization time: 0.9581 ms
+--------------------------------------------------------------
+Query Block  (select_id=1)
+    Cost:         0.0664683
+    Loops:        1
+    Total time:   35.6886 ms
+
+Duplicates Removal
+    └── Table: T  [ALL]
+        Key:           none
+        Possible keys: idx_dept_tech
+        Loops:         planned=1  actual=1
+        Rows:          estimated=10  actual=10
+        Cost:          0.0124848
+        Time:          table=0.0261 ms  other=0.0315 ms
+        Filtered:      estimated=100%  actual=100%
+        Engine stats:  pages_accessed=1
+        Condition:     t.dept is not null
+    └── Table: E  [ref]
+        Key:           idx_dept_emp  (len=3075)
+        Possible keys: idx_dept_emp
+        Used parts:    dept
+        Ref:           assignment_1_efficient.T.dept
+        Loops:         planned=10  actual=10
+        Rows:          estimated=1  actual=1007.4
+        Cost:          0.0272128
+        Time:          table=29.9151 ms  other=5.7091 ms
+        Filtered:      estimated=10%  actual=100%
+        Engine stats:  pages_accessed=20193
+        Condition:     e.dept = t.dept
+
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Join Query Good (JOIN)
+  SELECT E.ssnum FROM Employee E JOIN Techdept T ON T.dept = E.dept;
+==============================================================
+  Optimization time: 0.1058 ms
+--------------------------------------------------------------
+Query Block  (select_id=1)
+    Cost:         0.0396976
+    Loops:        1
+    Total time:   30.9562 ms
+
+    └── Table: T  [ALL]
+        Key:           none
+        Possible keys: idx_dept_tech
+        Loops:         planned=1  actual=1
+        Rows:          estimated=10  actual=10
+        Cost:          0.0124848
+        Time:          table=0.0240 ms  other=0.0322 ms
+        Filtered:      estimated=100%  actual=100%
+        Engine stats:  pages_accessed=1
+        Condition:     t.dept is not null
+    └── Table: E  [ref]
+        Key:           idx_dept_emp  (len=3075)
+        Possible keys: idx_dept_emp
+        Used parts:    dept
+        Ref:           assignment_1_efficient.T.dept
+        Loops:         planned=10  actual=10
+        Rows:          estimated=1  actual=1007.4
+        Cost:          0.0272128
+        Time:          table=28.7877 ms  other=2.1067 ms
+        Filtered:      estimated=100%  actual=100%
+        Engine stats:  pages_accessed=20193
+        Condition:     e.dept = t.dept
+
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Join Query Good (IN)
+  SELECT E.ssnum FROM Employee E WHERE E.dept IN (SELECT T.dept FROM Techdept T);
+==============================================================
+  Optimization time: 0.1537 ms
+--------------------------------------------------------------
+Query Block  (select_id=1)
+    Cost:         0.0664683
+    Loops:        1
+    Total time:   33.3585 ms
+
+Duplicates Removal
+    └── Table: T  [ALL]
+        Key:           none
+        Possible keys: idx_dept_tech
+        Loops:         planned=1  actual=1
+        Rows:          estimated=10  actual=10
+        Cost:          0.0124848
+        Time:          table=0.0248 ms  other=0.0328 ms
+        Filtered:      estimated=100%  actual=100%
+        Engine stats:  pages_accessed=1
+        Condition:     t.dept is not null
+    └── Table: E  [ref]
+        Key:           idx_dept_emp  (len=3075)
+        Possible keys: idx_dept_emp
+        Used parts:    dept
+        Ref:           assignment_1_efficient.T.dept
+        Loops:         planned=10  actual=10
+        Rows:          estimated=1  actual=1007.4
+        Cost:          0.0272128
+        Time:          table=27.9573 ms  other=5.3376 ms
+        Filtered:      estimated=10%  actual=100%
+        Engine stats:  pages_accessed=20193
+        Condition:     e.dept = t.dept
+
+Disconnected from the MariaDB server.

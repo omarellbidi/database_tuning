@@ -1,0 +1,211 @@
+Python 3.13.6 (v3.13.6:4e665351082, Aug  6 2025, 11:22:35) [Clang 16.0.0 (clang-1600.0.26.6)] on darwin
+Enter "help" below or click "Help" above for more information.
+
+======= RESTART: /Users/omarellbidi/Desktop/UNI/Task 2/asgn2_postgres.py =======
+Connected to the PostgreSQL server.
+Tables and indicies created successfully.
+Data inserted successfully.
+Analysis of queries ==============================================================
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Average Query Bad
+  SELECT AVG(salary) as avgsalary, dept FROM Employee GROUP BY dept HAVING dept LIKE 'Tech%';
+==============================================================
+  Planning time:   0.149 ms
+  Execution time:  23.896 ms
+  Triggers fired:  none
+==============================================================
+
+PLAN TREE
+--------------------------------------------------------------
+Aggregate  [Sorted]
+    Cost:          1645.88 .. 1649.87
+    Plan rows:     151  |  width=64
+    Actual time:   startup=22.270 ms  total=23.854 ms
+    Actual rows:   10  |  loops=1
+    Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+    └── Sort  (Outer)
+        Cost:          1645.88 .. 1646.58
+        Plan rows:     280  |  width=36
+        Actual time:   startup=22.067 ms  total=22.483 ms
+        Actual rows:   10074  |  loops=1
+        Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+        └── Seq Scan  on employee  (Outer)
+            Cost:          0.00 .. 1634.50
+            Plan rows:     280  |  width=36
+            Actual time:   startup=0.011 ms  total=14.860 ms
+            Actual rows:   10074  |  loops=1
+            Filter:        (dept ~~ 'Tech%'::text)
+            Rows removed:  89926
+            Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Average Query Good
+  SELECT AVG(salary) as avgsalary, dept FROM Employee WHERE dept LIKE 'Tech%' GROUP BY dept;
+==============================================================
+  Planning time:   0.108 ms
+  Execution time:  37.658 ms
+  Triggers fired:  none
+==============================================================
+
+PLAN TREE
+--------------------------------------------------------------
+Aggregate  [Sorted]
+    Cost:          1645.88 .. 1649.87
+    Plan rows:     151  |  width=64
+    Actual time:   startup=35.355 ms  total=37.603 ms
+    Actual rows:   10  |  loops=1
+    Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+    └── Sort  (Outer)
+        Cost:          1645.88 .. 1646.58
+        Plan rows:     280  |  width=36
+        Actual time:   startup=35.079 ms  total=35.673 ms
+        Actual rows:   10074  |  loops=1
+        Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+        └── Seq Scan  on employee  (Outer)
+            Cost:          0.00 .. 1634.50
+            Plan rows:     280  |  width=36
+            Actual time:   startup=0.022 ms  total=24.361 ms
+            Actual rows:   10074  |  loops=1
+            Filter:        (dept ~~ 'Tech%'::text)
+            Rows removed:  89926
+            Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Join Query Bad (EXISTS)
+  SELECT E.ssnum FROM Employee E WHERE EXISTS (SELECT 1 FROM Techdept T WHERE T.dept = E.dept);
+==============================================================
+  Planning time:   0.299 ms
+  Execution time:  26.617 ms
+  Triggers fired:  none
+==============================================================
+
+PLAN TREE
+--------------------------------------------------------------
+Hash Join  [Inner]
+    Cost:          24.62 .. 1667.09
+    Plan rows:     56,040  |  width=4
+    Actual time:   startup=0.054 ms  total=26.119 ms
+    Actual rows:   10074  |  loops=1
+    Hash Cond:     (e.dept = t.dept)
+    Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+    └── Seq Scan  on employee as e  (Outer)
+        Cost:          0.00 .. 1494.40
+        Plan rows:     56,040  |  width=36
+        Actual time:   startup=0.009 ms  total=10.988 ms
+        Actual rows:   100000  |  loops=1
+        Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+    └── Hash  (Inner)
+        Cost:          16.50 .. 16.50
+        Plan rows:     650  |  width=32
+        Actual time:   startup=0.031 ms  total=0.032 ms
+        Actual rows:   10  |  loops=1
+        Buckets:       1024 (Original=1024)
+        Batches:       1 (Original=1)
+        Peak memory:   9 KB
+        Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+        └── Seq Scan  on techdept as t  (Outer)
+            Cost:          0.00 .. 16.50
+            Plan rows:     650  |  width=32
+            Actual time:   startup=0.009 ms  total=0.011 ms
+            Actual rows:   10  |  loops=1
+            Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Join Query Good (JOIN)
+  SELECT E.ssnum FROM Employee E JOIN Techdept T ON T.dept = E.dept;
+==============================================================
+  Planning time:   0.135 ms
+  Execution time:  34.960 ms
+  Triggers fired:  none
+==============================================================
+
+PLAN TREE
+--------------------------------------------------------------
+Hash Join  [Inner]
+    Cost:          24.62 .. 1667.09
+    Plan rows:     56,040  |  width=4
+    Actual time:   startup=0.034 ms  total=34.325 ms
+    Actual rows:   10074  |  loops=1
+    Hash Cond:     (e.dept = t.dept)
+    Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+    └── Seq Scan  on employee as e  (Outer)
+        Cost:          0.00 .. 1494.40
+        Plan rows:     56,040  |  width=36
+        Actual time:   startup=0.010 ms  total=14.846 ms
+        Actual rows:   100000  |  loops=1
+        Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+    └── Hash  (Inner)
+        Cost:          16.50 .. 16.50
+        Plan rows:     650  |  width=32
+        Actual time:   startup=0.014 ms  total=0.015 ms
+        Actual rows:   10  |  loops=1
+        Buckets:       1024 (Original=1024)
+        Batches:       1 (Original=1)
+        Peak memory:   9 KB
+        Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+        └── Seq Scan  on techdept as t  (Outer)
+            Cost:          0.00 .. 16.50
+            Plan rows:     650  |  width=32
+            Actual time:   startup=0.004 ms  total=0.006 ms
+            Actual rows:   10  |  loops=1
+            Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+==============================================================
+  QUERY EXECUTION REPORT
+  Query: Join Query Good (IN)
+  SELECT E.ssnum FROM Employee E WHERE E.dept IN (SELECT T.dept FROM Techdept T);
+==============================================================
+  Planning time:   0.158 ms
+  Execution time:  36.906 ms
+  Triggers fired:  none
+==============================================================
+
+PLAN TREE
+--------------------------------------------------------------
+Hash Join  [Inner]
+    Cost:          24.62 .. 1667.09
+    Plan rows:     56,040  |  width=4
+    Actual time:   startup=0.038 ms  total=36.262 ms
+    Actual rows:   10074  |  loops=1
+    Hash Cond:     (e.dept = t.dept)
+    Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+    └── Seq Scan  on employee as e  (Outer)
+        Cost:          0.00 .. 1494.40
+        Plan rows:     56,040  |  width=36
+        Actual time:   startup=0.009 ms  total=17.794 ms
+        Actual rows:   100000  |  loops=1
+        Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+    └── Hash  (Inner)
+        Cost:          16.50 .. 16.50
+        Plan rows:     650  |  width=32
+        Actual time:   startup=0.018 ms  total=0.018 ms
+        Actual rows:   10  |  loops=1
+        Buckets:       1024 (Original=1024)
+        Batches:       1 (Original=1)
+        Peak memory:   9 KB
+        Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+        └── Seq Scan  on techdept as t  (Outer)
+            Cost:          0.00 .. 16.50
+            Plan rows:     650  |  width=32
+            Actual time:   startup=0.004 ms  total=0.006 ms
+            Actual rows:   10  |  loops=1
+            Shared bufs:   hit=0  read=0  dirtied=0  written=0
+
+Disconnected from the PostgreSQL server.
