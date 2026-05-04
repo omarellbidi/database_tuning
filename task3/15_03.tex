@@ -1,0 +1,408 @@
+\documentclass[11pt]{scrartcl}
+
+\usepackage[top=1.5cm]{geometry}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\youranswerhere}{[Your answer goes here \ldots]}
+\renewcommand{\thesubsection}{\arabic{subsection}}
+
+\lstdefinestyle{dbtsql}{
+  language=SQL,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{magenta!75!black},
+  stringstyle=\color{green!50!black},
+  showspaces=false,
+  showstringspaces=false,
+  commentstyle=\color{gray}}
+
+\title{
+  \textbf{\large Assignment 3} \\
+  Index Tuning -- Selection \\
+  {\large Database Tuning}}
+
+\author{
+  Group Name (e.g. A1, B5, B3) \\
+  \large Lastname1 Firstname1, StudentID1 \\
+  \large Lastname2 Firstname2, StudentID2 \\
+  \large Lastname3 Firstname3, StudentID3
+}
+
+\begin{document}
+
+\maketitle
+
+\paragraph{Notes}
+
+\begin{itemize}
+  \item Do not forget to run \lstinline[style=dbtsql]{ANALYZE tablename} after creating or changing a table.
+  \item Use \lstinline[style=dbtsql]{EXPLAIN ANALYZE} for the query plans that you display in the report.
+\end{itemize}
+
+\subsection*{Experimental Setup}
+
+How do you send the queries to the database? How do you measure the execution time for a sequence of queries?
+
+\youranswerhere{}
+
+\subsection*{Clustering B$^+$ Tree Index}
+
+\paragraph{Point Query}
+
+Repeat the following query multiple times with different conditions for \texttt{pubID}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\paragraph{Multipoint Query vs. Multipoint Query IN-Predicate -- Low Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{booktitle}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE booktitle = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\paragraph{Multipoint Query -- High Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{year}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE year = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\subsection*{Non-Clustering B$^+$ Tree Index}
+
+\emph{Note:} Make sure the data is not physically ordered by the indexed attributes due to the clustering index that you created before.
+
+\paragraph{Point Query}
+
+Repeat the following query multiple times with different conditions for \texttt{pubID}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\paragraph{Multipoint Query vs. Multipoint Query IN-Predicate -- Low Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{booktitle}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE booktitle = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\paragraph{Multipoint Query -- High Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{year}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE year = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\subsection*{Non-Clustering Hash Index}
+
+\emph{Note:} Make sure the data is not physically ordered by the indexed attributes due to the clustering index that you created before.
+
+\paragraph{Point Query}
+
+Repeat the following query multiple times with different conditions for \texttt{pubID}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\paragraph{Multipoint Query vs. Multipoint Query IN-Predicate -- Low Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{booktitle}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE booktitle = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\paragraph{Multipoint Query -- High Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{year}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE year = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\subsection*{Table Scan}
+
+\emph{Note:} Make sure the data is not physically ordered by the indexed attributes due to the clustering index that you created before.
+
+\paragraph{Point Query}
+
+Repeat the following query multiple times with different conditions for \texttt{pubID}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\paragraph{Multipoint Query vs. Multipoint Query IN-Predicate -- Low Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{booktitle}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE booktitle = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\paragraph{Multipoint Query -- High Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{year}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE year = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+\youranswerhere{}
+
+Show the runtime results and compute the throughput.
+
+\youranswerhere{}
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plan goes here ...]
+\end{verbatim}}
+
+\subsection*{Discussion}
+
+Give the throughput of the query types and index types in queries/second.
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c|c|c|c|c}
+    & clustering & non-clust.\ B$^+$ tree & non-clust.\ hash & table scan
+      \tabularnewline
+    \hline
+    point (\texttt{pubID}) & \ldots & \ldots & \ldots & \ldots \tabularnewline
+    \hline
+    multipoint (\texttt{booktitle}) & \ldots & \ldots & \ldots & \ldots
+      \tabularnewline
+    \hline
+		multipoint-IN (\texttt{pubID}) & \ldots & \ldots & \ldots & \ldots
+      \tabularnewline
+		\hline
+    multipoint (\texttt{year}) & \ldots & \ldots & \ldots & \ldots
+      \tabularnewline
+  \end{tabular}
+\end{table}
+
+Discuss the runtime results for the different index types and the table scan. Are the results expected? Why (not)?
+
+\youranswerhere{}
+
+\subsection*{Time Spent on this Assignment}
+
+Time in hours per person: \textbf{XXX}
+
+\subsection*{References}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c}
+    \hline
+    \textbf{Important:} Reference your information sources! \tabularnewline
+    Remove this section if you use footnotes to reference your information sources. \tabularnewline
+    \hline
+  \end{tabular}
+\end{table}
+
+\end{document}
