@@ -288,12 +288,11 @@ def run_queries(conn: Any, shape_label: str, queries: list[tuple[str, str]]) -> 
 
     for _label, sql in queries:
         with conn.cursor() as cur:
-            t0 = time.perf_counter()
-            cur.execute(sql)
-            cur.fetchall()
-            t1 = time.perf_counter()
-        times_ms.append((t1 - t0) * 1_000)
-
+            cur.execute(f"EXPLAIN (ANALYZE, FORMAT JSON) {sql}")
+            plan = cur.fetchone()[0][0]
+            actual_ms = plan["Execution Time"]
+        times_ms.append(actual_ms)
+    
     avg_ms: float = sum(times_ms) / len(times_ms)
     throughput: float = 1_000 / avg_ms if avg_ms > 0 else float("inf")
 
