@@ -1,0 +1,341 @@
+Connected to PostgreSQL.
+Table 'publication' already exists – skipping rename.
+
+>>> Experiment 1: Clustered B+ Tree Index
+  > [1 – Clustered B+ Tree Index] indexing on 'pubID' for: Point Query
+Clustered B+ tree index 'publ_clustered_pubID' created and table clustered by 'pubID'.
+ANALYZE publication – statistics refreshed.
+Table unclustered: physical order shuffled by 'year', index 'publ_clustered_pubID' dropped.
+ANALYZE publication – statistics refreshed.
+  > [1 – Clustered B+ Tree Index] indexing on 'booktitle' for: Multipoint-low
+Clustered B+ tree index 'publ_clustered_booktitle' created and table clustered by 'booktitle'.
+ANALYZE publication – statistics refreshed.
+Table unclustered: physical order shuffled by 'pubID', index 'publ_clustered_booktitle' dropped.
+ANALYZE publication – statistics refreshed.
+  > [1 – Clustered B+ Tree Index] indexing on 'pubID' for: Multipoint-IN
+Clustered B+ tree index 'publ_clustered_pubID' created and table clustered by 'pubID'.
+ANALYZE publication – statistics refreshed.
+Table unclustered: physical order shuffled by 'year', index 'publ_clustered_pubID' dropped.
+ANALYZE publication – statistics refreshed.
+  > [1 – Clustered B+ Tree Index] indexing on 'year' for: Multipoint-high
+Clustered B+ tree index 'publ_clustered_year' created and table clustered by 'year'.
+ANALYZE publication – statistics refreshed.
+Table unclustered: physical order shuffled by 'pubID', index 'publ_clustered_year' dropped.
+ANALYZE publication – statistics refreshed.
+
+======================================================================
+  EXPERIMENT: 1 – Clustered B+ Tree Index
+======================================================================
+  Query                                           Avg (ms)         QPS
+  --------------------------------------------- ----------  ----------
+  Point Query                                        0.106     9442.87
+  Multipoint-low                                     0.128     7818.61
+  Multipoint-IN                                      0.013    77519.38
+  Multipoint-high                                    6.377      156.80
+
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE pubID = 'journals/acmcs/Codd79';
+----------------------------------------------------------------------
+  Index Scan using publ_clustered_pubid on publication  (cost=0.43..8.45 rows=1 width=112) (actual time=0.018..0.018 rows=0.00 loops=1)
+    Index Cond: ((pubid)::text = 'journals/acmcs/Codd79'::text)
+    Index Searches: 1
+    Buffers: shared read=3
+  Planning:
+    Buffers: shared hit=33 read=2
+  Planning Time: 0.214 ms
+  Execution Time: 0.028 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE booktitle = 'VLDB';
+----------------------------------------------------------------------
+  Index Scan using publ_clustered_booktitle on publication  (cost=0.43..115.34 rows=2795 width=112) (actual time=0.019..0.264 rows=2444.00 loops=1)
+    Index Cond: ((booktitle)::text = 'VLDB'::text)
+    Index Searches: 1
+    Buffers: shared read=48
+  Planning:
+    Buffers: shared hit=27 read=1
+  Planning Time: 0.071 ms
+  Execution Time: 0.319 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE pubID IN ('journals/acmcs/Codd79', 'journals/cacm/Codd70', 'conf/vldb/Gray79');
+----------------------------------------------------------------------
+  Index Scan using publ_clustered_pubid on publication  (cost=0.43..17.34 rows=3 width=112) (actual time=0.038..0.038 rows=1.00 loops=1)
+    Index Cond: ((pubid)::text = ANY ('{journals/acmcs/Codd79,journals/cacm/Codd70,conf/vldb/Gray79}'::text[]))
+    Index Searches: 3
+    Buffers: shared hit=2 read=8
+  Planning:
+    Buffers: shared hit=70 read=3
+  Planning Time: 0.395 ms
+  Execution Time: 0.045 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE year = '1995';
+----------------------------------------------------------------------
+  Index Scan using publ_clustered_year on publication  (cost=0.43..1148.62 rows=29268 width=112) (actual time=0.019..3.090 rows=29823.00 loops=1)
+    Index Cond: ((year)::text = '1995'::text)
+    Index Searches: 1
+    Buffers: shared read=560
+  Planning:
+    Buffers: shared hit=27 read=1
+  Planning Time: 0.074 ms
+  Execution Time: 3.709 ms
+======================================================================
+
+>>> Experiment 2: Non-Clustering B+ Tree Index
+  > [2 – Non-Clustering B+ Tree Index] indexing on 'pubID' for: Point Query
+B+ tree index 'publ_nc_btree_pubID' created on column 'pubID'.
+ANALYZE publication – statistics refreshed.
+Index 'publ_nc_btree_pubID' dropped (if it existed).
+ANALYZE publication – statistics refreshed.
+  > [2 – Non-Clustering B+ Tree Index] indexing on 'booktitle' for: Multipoint-low
+B+ tree index 'publ_nc_btree_booktitle' created on column 'booktitle'.
+ANALYZE publication – statistics refreshed.
+Index 'publ_nc_btree_booktitle' dropped (if it existed).
+ANALYZE publication – statistics refreshed.
+  > [2 – Non-Clustering B+ Tree Index] indexing on 'pubID' for: Multipoint-IN
+B+ tree index 'publ_nc_btree_pubID' created on column 'pubID'.
+ANALYZE publication – statistics refreshed.
+Index 'publ_nc_btree_pubID' dropped (if it existed).
+ANALYZE publication – statistics refreshed.
+  > [2 – Non-Clustering B+ Tree Index] indexing on 'year' for: Multipoint-high
+B+ tree index 'publ_nc_btree_year' created on column 'year'.
+ANALYZE publication – statistics refreshed.
+Index 'publ_nc_btree_year' dropped (if it existed).
+ANALYZE publication – statistics refreshed.
+
+======================================================================
+  EXPERIMENT: 2 – Non-Clustering B+ Tree Index
+======================================================================
+  Query                                           Avg (ms)         QPS
+  --------------------------------------------- ----------  ----------
+  Point Query                                        0.012    83333.33
+  Multipoint-low                                     0.148     6752.19
+  Multipoint-IN                                      0.013    77519.38
+  Multipoint-high                                   16.367       61.10
+
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE pubID = 'journals/acmcs/Codd79';
+----------------------------------------------------------------------
+  Index Scan using publ_nc_btree_pubid on publication  (cost=0.43..8.45 rows=1 width=112) (actual time=0.019..0.019 rows=0.00 loops=1)
+    Index Cond: ((pubid)::text = 'journals/acmcs/Codd79'::text)
+    Index Searches: 1
+    Buffers: shared read=3
+  Planning:
+    Buffers: shared hit=26 read=1
+  Planning Time: 0.090 ms
+  Execution Time: 0.027 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE booktitle = 'VLDB';
+----------------------------------------------------------------------
+  Bitmap Heap Scan on publication  (cost=22.13..5442.89 rows=1768 width=112) (actual time=0.083..0.319 rows=2444.00 loops=1)
+    Recheck Cond: ((booktitle)::text = 'VLDB'::text)
+    Heap Blocks: exact=45
+    Buffers: shared read=50
+    ->  Bitmap Index Scan on publ_nc_btree_booktitle  (cost=0.00..21.69 rows=1768 width=0) (actual time=0.054..0.054 rows=2444.00 loops=1)
+          Index Cond: ((booktitle)::text = 'VLDB'::text)
+          Index Searches: 1
+          Buffers: shared read=5
+  Planning:
+    Buffers: shared hit=27 read=1
+  Planning Time: 0.086 ms
+  Execution Time: 0.566 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE pubID IN ('journals/acmcs/Codd79', 'journals/cacm/Codd70', 'conf/vldb/Gray79');
+----------------------------------------------------------------------
+  Index Scan using publ_nc_btree_pubid on publication  (cost=0.43..17.34 rows=3 width=112) (actual time=0.033..0.034 rows=1.00 loops=1)
+    Index Cond: ((pubid)::text = ANY ('{journals/acmcs/Codd79,journals/cacm/Codd70,conf/vldb/Gray79}'::text[]))
+    Index Searches: 3
+    Buffers: shared hit=3 read=7
+  Planning:
+    Buffers: shared hit=26 read=1
+  Planning Time: 0.068 ms
+  Execution Time: 0.038 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE year = '1995';
+----------------------------------------------------------------------
+  Bitmap Heap Scan on publication  (cost=335.40..24333.86 rows=29803 width=112) (actual time=1.802..17.978 rows=29823.00 loops=1)
+    Recheck Cond: ((year)::text = '1995'::text)
+    Heap Blocks: exact=9505
+    Buffers: shared hit=1995 read=7538
+    ->  Bitmap Index Scan on publ_nc_btree_year  (cost=0.00..327.95 rows=29803 width=0) (actual time=0.965..0.965 rows=29823.00 loops=1)
+          Index Cond: ((year)::text = '1995'::text)
+          Index Searches: 1
+          Buffers: shared read=28
+  Planning:
+    Buffers: shared hit=28 read=1
+  Planning Time: 0.079 ms
+  Execution Time: 18.669 ms
+======================================================================
+
+>>> Experiment 3: Non-Clustering Hash Index
+  > [3 – Non-Clustering Hash Index] indexing on 'pubID' for: Point Query
+Hash index 'publ_nc_hash_pubID' created on column 'pubID'.
+ANALYZE publication – statistics refreshed.
+Index 'publ_nc_hash_pubID' dropped (if it existed).
+ANALYZE publication – statistics refreshed.
+  > [3 – Non-Clustering Hash Index] indexing on 'booktitle' for: Multipoint-low
+Hash index 'publ_nc_hash_booktitle' created on column 'booktitle'.
+ANALYZE publication – statistics refreshed.
+Index 'publ_nc_hash_booktitle' dropped (if it existed).
+ANALYZE publication – statistics refreshed.
+  > [3 – Non-Clustering Hash Index] indexing on 'pubID' for: Multipoint-IN
+Hash index 'publ_nc_hash_pubID' created on column 'pubID'.
+ANALYZE publication – statistics refreshed.
+Index 'publ_nc_hash_pubID' dropped (if it existed).
+ANALYZE publication – statistics refreshed.
+  > [3 – Non-Clustering Hash Index] indexing on 'year' for: Multipoint-high
+Hash index 'publ_nc_hash_year' created on column 'year'.
+ANALYZE publication – statistics refreshed.
+Index 'publ_nc_hash_year' dropped (if it existed).
+ANALYZE publication – statistics refreshed.
+
+======================================================================
+  EXPERIMENT: 3 – Non-Clustering Hash Index
+======================================================================
+  Query                                           Avg (ms)         QPS
+  --------------------------------------------- ----------  ----------
+  Point Query                                        0.004   238095.24
+  Multipoint-low                                     0.174     5743.83
+  Multipoint-IN                                      0.005   192307.69
+  Multipoint-high                                   39.626       25.24
+
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE pubID = 'journals/acmcs/Codd79';
+----------------------------------------------------------------------
+  Index Scan using publ_nc_hash_pubid on publication  (cost=0.00..8.02 rows=1 width=112) (actual time=0.010..0.010 rows=0.00 loops=1)
+    Index Cond: ((pubid)::text = 'journals/acmcs/Codd79'::text)
+    Index Searches: 1
+    Buffers: shared hit=2
+  Planning:
+    Buffers: shared hit=27
+  Planning Time: 0.047 ms
+  Execution Time: 0.016 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE booktitle = 'VLDB';
+----------------------------------------------------------------------
+  Bitmap Heap Scan on publication  (cost=76.71..7660.97 rows=2672 width=112) (actual time=0.084..0.253 rows=2444.00 loops=1)
+    Recheck Cond: ((booktitle)::text = 'VLDB'::text)
+    Heap Blocks: exact=45
+    Buffers: shared hit=53
+    ->  Bitmap Index Scan on publ_nc_hash_booktitle  (cost=0.00..76.04 rows=2672 width=0) (actual time=0.075..0.076 rows=2444.00 loops=1)
+          Index Cond: ((booktitle)::text = 'VLDB'::text)
+          Index Searches: 1
+          Buffers: shared hit=8
+  Planning:
+    Buffers: shared hit=26
+  Planning Time: 0.084 ms
+  Execution Time: 0.314 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE pubID IN ('journals/acmcs/Codd79', 'journals/cacm/Codd70', 'conf/vldb/Gray79');
+----------------------------------------------------------------------
+  Bitmap Heap Scan on publication  (cost=12.02..23.96 rows=3 width=112) (actual time=0.034..0.034 rows=1.00 loops=1)
+    Recheck Cond: ((pubid)::text = ANY ('{journals/acmcs/Codd79,journals/cacm/Codd70,conf/vldb/Gray79}'::text[]))
+    Heap Blocks: exact=1
+    Buffers: shared hit=5
+    ->  Bitmap Index Scan on publ_nc_hash_pubid  (cost=0.00..12.02 rows=3 width=0) (actual time=0.030..0.030 rows=1.00 loops=1)
+          Index Cond: ((pubid)::text = ANY ('{journals/acmcs/Codd79,journals/cacm/Codd70,conf/vldb/Gray79}'::text[]))
+          Index Searches: 3
+          Buffers: shared hit=4
+  Planning:
+    Buffers: shared hit=28
+  Planning Time: 0.094 ms
+  Execution Time: 0.042 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE year = '1995';
+----------------------------------------------------------------------
+  Bitmap Heap Scan on publication  (cost=924.56..24923.73 rows=30008 width=112) (actual time=2.063..55.329 rows=29823.00 loops=1)
+    Recheck Cond: ((year)::text = '1995'::text)
+    Heap Blocks: exact=9505
+    Buffers: shared hit=3313 read=6267 written=3
+    ->  Bitmap Index Scan on publ_nc_hash_year  (cost=0.00..917.06 rows=30008 width=0) (actual time=1.212..1.212 rows=29823.00 loops=1)
+          Index Cond: ((year)::text = '1995'::text)
+          Index Searches: 1
+          Buffers: shared hit=75
+  Planning:
+    Buffers: shared hit=26
+  Planning Time: 0.077 ms
+  Execution Time: 56.275 ms
+======================================================================
+
+>>> Experiment 4: Table Scan (no index)
+  > [4 – Table Scan (no index)] indexing on 'pubID' for: Point Query
+ANALYZE publication – statistics refreshed.
+ANALYZE publication – statistics refreshed.
+  > [4 – Table Scan (no index)] indexing on 'booktitle' for: Multipoint-low
+ANALYZE publication – statistics refreshed.
+ANALYZE publication – statistics refreshed.
+  > [4 – Table Scan (no index)] indexing on 'pubID' for: Multipoint-IN
+ANALYZE publication – statistics refreshed.
+ANALYZE publication – statistics refreshed.
+  > [4 – Table Scan (no index)] indexing on 'year' for: Multipoint-high
+ANALYZE publication – statistics refreshed.
+ANALYZE publication – statistics refreshed.
+
+======================================================================
+  EXPERIMENT: 4 – Table Scan (no index)
+======================================================================
+  Query                                           Avg (ms)         QPS
+  --------------------------------------------- ----------  ----------
+  Point Query                                       27.965       35.76
+  Multipoint-low                                    31.863       31.38
+  Multipoint-IN                                     38.411       26.03
+  Multipoint-high                                   38.191       26.18
+
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE pubID = 'journals/acmcs/Codd79';
+----------------------------------------------------------------------
+  Gather  (cost=1000.00..29851.09 rows=1 width=112) (actual time=34.163..35.195 rows=0.00 loops=1)
+    Workers Planned: 2
+    Workers Launched: 2
+    Buffers: shared hit=15975 read=6453
+    ->  Parallel Seq Scan on publication  (cost=0.00..28850.99 rows=1 width=112) (actual time=23.346..23.346 rows=0.00 loops=3)
+          Filter: ((pubid)::text = 'journals/acmcs/Codd79'::text)
+          Rows Removed by Filter: 411071
+          Buffers: shared hit=15975 read=6453
+  Planning:
+    Buffers: shared hit=27
+  Planning Time: 0.067 ms
+  Execution Time: 35.629 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE booktitle = 'VLDB';
+----------------------------------------------------------------------
+  Gather  (cost=1000.00..30011.29 rows=1603 width=112) (actual time=21.745..33.904 rows=2444.00 loops=1)
+    Workers Planned: 2
+    Workers Launched: 2
+    Buffers: shared hit=16018 read=6410
+    ->  Parallel Seq Scan on publication  (cost=0.00..28850.99 rows=668 width=112) (actual time=18.434..29.432 rows=814.67 loops=3)
+          Filter: ((booktitle)::text = 'VLDB'::text)
+          Rows Removed by Filter: 410257
+          Buffers: shared hit=16018 read=6410
+  Planning:
+    Buffers: shared hit=24
+  Planning Time: 0.069 ms
+  Execution Time: 33.967 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE pubID IN ('journals/acmcs/Codd79', 'journals/cacm/Codd70', 'conf/vldb/Gray79');
+----------------------------------------------------------------------
+  Gather  (cost=1000.00..30493.59 rows=3 width=112) (actual time=37.357..38.414 rows=1.00 loops=1)
+    Workers Planned: 2
+    Workers Launched: 2
+    Buffers: shared hit=16019 read=6415
+    ->  Parallel Seq Scan on publication  (cost=0.00..29493.29 rows=1 width=112) (actual time=31.621..35.589 rows=0.33 loops=3)
+          Filter: ((pubid)::text = ANY ('{journals/acmcs/Codd79,journals/cacm/Codd70,conf/vldb/Gray79}'::text[]))
+          Rows Removed by Filter: 411071
+          Buffers: shared hit=16019 read=6415
+  Planning:
+    Buffers: shared hit=27
+  Planning Time: 0.075 ms
+  Execution Time: 38.421 ms
+======================================================================
+  EXPLAIN ANALYZE plan for: SELECT * FROM publication WHERE year = '1995';
+----------------------------------------------------------------------
+  Gather  (cost=1000.00..32933.99 rows=30830 width=112) (actual time=0.111..34.545 rows=29823.00 loops=1)
+    Workers Planned: 2
+    Workers Launched: 2
+    Buffers: shared hit=16013 read=6415
+    ->  Parallel Seq Scan on publication  (cost=0.00..28850.99 rows=12846 width=112) (actual time=0.090..31.526 rows=9941.00 loops=3)
+          Filter: ((year)::text = '1995'::text)
+          Rows Removed by Filter: 401130
+          Buffers: shared hit=16013 read=6415
+  Planning:
+    Buffers: shared hit=26
+  Planning Time: 0.056 ms
+  Execution Time: 35.217 ms
+======================================================================
+Disconnected from PostgreSQL.
+
+All experiments completed.
