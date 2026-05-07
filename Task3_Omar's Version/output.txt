@@ -1,0 +1,223 @@
+================ PHASE 1: TABLE SCAN ================
+
+--- Table Scan - POINT ---
+QUERY PLAN:
+Gather  (cost=1000.00..29850.09 rows=1 width=113) (actual time=30.983..32.140 rows=1 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  ->  Parallel Seq Scan on publ  (cost=0.00..28849.99 rows=1 width=113) (actual time=23.869..29.118 rows=0 loops=3)
+        Filter: ((pubid)::text = 'conf/cp/SimonisO08'::text)
+        Rows Removed by Filter: 411071
+Planning Time: 0.077 ms
+Execution Time: 32.158 ms
+Running 65-second stress test...
+DONE. Total Queries: 2144
+Average Runtime: 0.030322 seconds
+Throughput: 32.98 queries/second
+
+
+--- Table Scan - LOW_SELECTIVITY ---
+QUERY PLAN:
+Gather  (cost=1000.00..29867.79 rows=178 width=113) (actual time=46.757..48.085 rows=220 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  ->  Parallel Seq Scan on publ  (cost=0.00..28849.99 rows=74 width=113) (actual time=41.493..44.972 rows=73 loops=3)
+        Filter: ((booktitle)::text = 'ICVS'::text)
+        Rows Removed by Filter: 410998
+Planning Time: 0.054 ms
+Execution Time: 48.098 ms
+Running 65-second stress test...
+DONE. Total Queries: 1775
+Average Runtime: 0.036634 seconds
+Throughput: 27.30 queries/second
+
+
+--- Table Scan - IN_PREDICATE ---
+QUERY PLAN:
+Gather  (cost=1000.00..30492.59 rows=3 width=113) (actual time=52.757..54.014 rows=3 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  ->  Parallel Seq Scan on publ  (cost=0.00..29492.29 rows=1 width=113) (actual time=34.116..51.440 rows=1 loops=3)
+        Filter: ((pubid)::text = ANY ('{conf/cp/SimonisO08,conf/dac/Lanzo92,journals/tomccap/GhineaDGC07}'::text[]))
+        Rows Removed by Filter: 411070
+Planning Time: 1.071 ms
+Execution Time: 54.021 ms
+Running 65-second stress test...
+DONE. Total Queries: 1028
+Average Runtime: 0.063277 seconds
+Throughput: 15.80 queries/second
+
+
+--- Table Scan - HIGH_SELECTIVITY ---
+QUERY PLAN:
+Gather  (cost=1000.00..29867.49 rows=175 width=113) (actual time=0.361..77.442 rows=22 loops=1)
+  Workers Planned: 2
+  Workers Launched: 2
+  ->  Parallel Seq Scan on publ  (cost=0.00..28849.99 rows=73 width=113) (actual time=12.561..73.500 rows=7 loops=3)
+        Filter: ((year)::text = '1950'::text)
+        Rows Removed by Filter: 411064
+Planning Time: 0.044 ms
+Execution Time: 77.460 ms
+Running 65-second stress test...
+DONE. Total Queries: 725
+Average Runtime: 0.090078 seconds
+Throughput: 11.10 queries/second
+
+================ PHASE 2: CLUSTERED B+ TREE ================
+
+--- Clustered B-Tree - POINT ---
+QUERY PLAN:
+Index Scan using pubid_idx on publ  (cost=0.43..8.45 rows=1 width=112) (actual time=0.022..0.022 rows=1 loops=1)
+  Index Cond: ((pubid)::text = 'conf/dac/Lanzo92'::text)
+Planning Time: 0.193 ms
+Execution Time: 0.030 ms
+Running 65-second stress test...
+DONE. Total Queries: 1366409
+Average Runtime: 0.000048 seconds
+Throughput: 21021.67 queries/second
+
+
+--- Clustered B-Tree - IN_PREDICATE ---
+QUERY PLAN:
+Index Scan using pubid_idx on publ  (cost=0.43..17.34 rows=3 width=112) (actual time=0.026..0.053 rows=3 loops=1)
+  Index Cond: ((pubid)::text = ANY ('{journals/tomccap/GhineaDGC07,journals/jal/Xu00,conf/conpar/LeiteB92}'::text[]))
+Planning Time: 0.135 ms
+Execution Time: 0.058 ms
+Running 65-second stress test...
+DONE. Total Queries: 929299
+Average Runtime: 0.000070 seconds
+Throughput: 14296.89 queries/second
+
+
+--- Clustered B-Tree - LOW_SELECTIVITY ---
+QUERY PLAN:
+Index Scan using title_idx on publ  (cost=0.43..14.60 rows=181 width=112) (actual time=0.015..0.020 rows=77 loops=1)
+  Index Cond: ((booktitle)::text = 'WRAC'::text)
+Planning Time: 0.179 ms
+Execution Time: 0.028 ms
+Running 65-second stress test...
+DONE. Total Queries: 493806
+Average Runtime: 0.000132 seconds
+Throughput: 7597.01 queries/second
+
+
+--- Clustered B-Tree - HIGH_SELECTIVITY ---
+QUERY PLAN:
+Index Scan using year_idx on publ  (cost=0.43..13.19 rows=158 width=112) (actual time=0.016..0.039 rows=260 loops=1)
+  Index Cond: ((year)::text = '1959'::text)
+Planning Time: 0.149 ms
+Execution Time: 0.049 ms
+Running 65-second stress test...
+DONE. Total Queries: 5766
+Average Runtime: 0.011275 seconds
+Throughput: 88.69 queries/second
+
+================ PHASE 3: NON-CLUSTERED B+ TREE ================
+
+--- Non-Clustered B-Tree - POINT ---
+QUERY PLAN:
+Index Scan using pubid_idx on publ  (cost=0.43..8.45 rows=1 width=112) (actual time=0.028..0.029 rows=1 loops=1)
+  Index Cond: ((pubid)::text = 'journals/tomccap/GhineaDGC07'::text)
+Planning Time: 0.184 ms
+Execution Time: 0.035 ms
+Running 65-second stress test...
+DONE. Total Queries: 1387906
+Average Runtime: 0.000047 seconds
+Throughput: 21352.39 queries/second
+
+
+--- Non-Clustered B-Tree - IN_PREDICATE ---
+QUERY PLAN:
+Index Scan using pubid_idx on publ  (cost=0.43..25.27 rows=3 width=112) (actual time=0.029..0.060 rows=3 loops=1)
+  Index Cond: ((pubid)::text = ANY ('{conf/ipps/Sobe04,conf/conpar/LeiteB92,conf/crypto/BressonSS02}'::text[]))
+Planning Time: 0.168 ms
+Execution Time: 0.066 ms
+Running 65-second stress test...
+DONE. Total Queries: 922993
+Average Runtime: 0.000070 seconds
+Throughput: 14199.89 queries/second
+
+
+--- Non-Clustered B-Tree - LOW_SELECTIVITY ---
+QUERY PLAN:
+Index Scan using title_idx on publ  (cost=0.43..672.21 rows=181 width=112) (actual time=0.022..0.026 rows=38 loops=1)
+  Index Cond: ((booktitle)::text = 'Computer Science Today'::text)
+Planning Time: 0.161 ms
+Execution Time: 0.033 ms
+Running 65-second stress test...
+DONE. Total Queries: 497390
+Average Runtime: 0.000131 seconds
+Throughput: 7652.12 queries/second
+
+
+--- Non-Clustered B-Tree - HIGH_SELECTIVITY ---
+QUERY PLAN:
+Index Scan using year_idx on publ  (cost=0.43..884.89 rows=240 width=112) (actual time=0.016..0.042 rows=260 loops=1)
+  Index Cond: ((year)::text = '1959'::text)
+Planning Time: 0.131 ms
+Execution Time: 0.053 ms
+Running 65-second stress test...
+DONE. Total Queries: 5316
+Average Runtime: 0.012228 seconds
+Throughput: 81.78 queries/second
+
+================ PHASE 4: HASH INDEX ================
+
+--- Hash Index - POINT ---
+QUERY PLAN:
+Index Scan using pubid_idx on publ  (cost=0.00..8.02 rows=1 width=112) (actual time=0.023..0.023 rows=1 loops=1)
+  Index Cond: ((pubid)::text = 'conf/conpar/LeiteB92'::text)
+Planning Time: 0.260 ms
+Execution Time: 0.033 ms
+Running 65-second stress test...
+DONE. Total Queries: 1615457
+Average Runtime: 0.000040 seconds
+Throughput: 24853.18 queries/second
+
+
+--- Hash Index - IN_PREDICATE ---
+QUERY PLAN:
+Bitmap Heap Scan on publ  (cost=12.02..23.96 rows=3 width=112) (actual time=0.016..0.020 rows=2 loops=1)
+  Recheck Cond: ((pubid)::text = ANY ('{journals/automatica/DehghaniLA,conf/ipps/Sobe04,conf/crypto/BressonSS02}'::text[]))
+  Heap Blocks: exact=2
+  ->  Bitmap Index Scan on pubid_idx  (cost=0.00..12.02 rows=3 width=0) (actual time=0.007..0.007 rows=2 loops=1)
+        Index Cond: ((pubid)::text = ANY ('{journals/automatica/DehghaniLA,conf/ipps/Sobe04,conf/crypto/BressonSS02}'::text[]))
+Planning Time: 0.141 ms
+Execution Time: 0.027 ms
+Running 65-second stress test...
+DONE. Total Queries: 1394973
+Average Runtime: 0.000047 seconds
+Throughput: 21461.11 queries/second
+
+
+--- Hash Index - LOW_SELECTIVITY ---
+QUERY PLAN:
+Bitmap Heap Scan on publ  (cost=5.37..668.41 rows=177 width=113) (actual time=0.013..0.023 rows=56 loops=1)
+  Recheck Cond: ((booktitle)::text = 'RSKD'::text)
+  Heap Blocks: exact=3
+  ->  Bitmap Index Scan on title_idx  (cost=0.00..5.33 rows=177 width=0) (actual time=0.005..0.006 rows=56 loops=1)
+        Index Cond: ((booktitle)::text = 'RSKD'::text)
+Planning Time: 0.164 ms
+Execution Time: 0.033 ms
+Running 65-second stress test...
+DONE. Total Queries: 489281
+Average Runtime: 0.000133 seconds
+Throughput: 7527.37 queries/second
+
+
+--- Hash Index - HIGH_SELECTIVITY ---
+QUERY PLAN:
+Bitmap Heap Scan on publ  (cost=865.59..24831.75 rows=28076 width=113) (actual time=0.616..4.673 rows=27801 loops=1)
+  Recheck Cond: ((year)::text = '1994'::text)
+  Heap Blocks: exact=848
+  ->  Bitmap Index Scan on year_idx  (cost=0.00..858.57 rows=28076 width=0) (actual time=0.542..0.542 rows=27801 loops=1)
+        Index Cond: ((year)::text = '1994'::text)
+Planning Time: 0.175 ms
+Execution Time: 5.280 ms
+Running 65-second stress test...
+DONE. Total Queries: 5108
+Average Runtime: 0.012735 seconds
+Throughput: 78.53 queries/second
+
+================ CLEANING UP ================
+ALL REQUESTED BENCHMARKS COMPLETED SUCCESSFULLY.
