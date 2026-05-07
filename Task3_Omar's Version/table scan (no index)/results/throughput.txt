@@ -1,0 +1,23 @@
+HIGH_SELECTIVITY:
+Starting 65-second test for: HIGH_SELECTIVITY...
+DONE. Total Queries: 1345
+Average Runtime: 0.048356 seconds
+Queries per second: 20.69
+
+IN_PREDICATE:
+Starting 65-second test for: IN_PREDICATE...
+DONE. Total Queries: 1596
+Average Runtime: 0.040732 seconds
+Queries per second: 24.55
+
+LOW_SELECTIVITY:
+Starting 65-second test for: LOW_SELECTIVITY...
+DONE. Total Queries: 2086
+Average Runtime: 0.031166 seconds
+Queries per second: 32.09
+
+POINT:
+Starting 62-second test for: POINT...
+DONE. Total Queries: 2440
+Average Runtime: 0.026650 seconds
+Queries per second: 39.35

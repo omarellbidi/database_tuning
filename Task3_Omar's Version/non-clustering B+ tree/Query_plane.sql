@@ -1,0 +1,1 @@
+EXPLAIN SELECT * FROM Publ WHERE year = '1974';
