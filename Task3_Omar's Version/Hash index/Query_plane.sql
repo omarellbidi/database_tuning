@@ -1,1 +1,0 @@
-EXPLAIN SELECT * FROM Publ WHERE pubID = 'journals/automatica/DehghaniLA';
