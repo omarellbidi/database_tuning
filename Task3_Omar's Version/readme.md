@@ -2,7 +2,7 @@
 
 This guide explains the exact order of operations required to reproduce our database benchmark tests.
 
-**CRITICAL RULE:** Because PostgreSQL is stateful, the physical ordering of the data on the hard drive matters. You **MUST** run these tests in this exact order, and execute the SQL prep blocks *before* running the corresponding Python scripts, or your results will be invalid.
+**CRITICAL RULE:** Because PostgreSQL is stateful, the physical ordering of the data on the hard drive matters. You **MUST** run these tests in this exact order, and execute the SQL prep blocks *before* running each phase.
 
 ---
 
@@ -14,7 +14,7 @@ This guide explains the exact order of operations required to reproduce our data
 
 Run these queries to fetch random existing data. Plug these results into the `SAMPLE_PUBIDS`, `SAMPLE_TITLES`, and `SAMPLE_YEARS` arrays in your Python script.
 
-````````````sql
+```sql
 -- Point Query and IN Predicate baseline
 SELECT pubID FROM publ ORDER BY RANDOM() LIMIT 10;
 
@@ -23,7 +23,7 @@ SELECT booktitle FROM (SELECT DISTINCT booktitle FROM publ WHERE booktitle IS NO
 
 -- High Selectivity (year) baseline
 SELECT year FROM (SELECT DISTINCT year FROM publ) AS sub ORDER BY RANDOM() LIMIT 10;
-` ``
+```
 
 **2. Run Python Tests**
 
@@ -42,20 +42,20 @@ Uncomment and run all 4 tests in the Python script one by one.
 
 **1. Create the Indexes (SQL)**
 
-```````````sql
+```sql
 CREATE INDEX year_bplus_idx ON publ (year);
 CREATE INDEX title_bplus_idx ON publ (booktitle);
 CREATE INDEX pubid_bplus_idx ON publ (pubid);
-` ``
+```
 
 **2. Prepare & Run: Point, IN, and High Selectivity**
 
 Run this SQL to physically sort the table by Title. This guarantees that `year` and `pubid` are scattered, forcing a true non-clustered lookup.
 
-``````````sql
+```sql
 CLUSTER publ USING title_bplus_idx;
 ANALYZE publ;
-` ``
+```
 
 - **Run Python:** `POINT`, `IN_PREDICATE`, and `HIGH_SELECTIVITY`.
 
@@ -63,10 +63,10 @@ ANALYZE publ;
 
 Run this SQL to physically sort the table by Year. This scatters the `booktitle` data.
 
-`````````sql
+```sql
 CLUSTER publ USING year_bplus_idx;
 ANALYZE publ;
-` ``
+```
 
 - **Run Python:** `LOW_SELECTIVITY`.
 
@@ -78,28 +78,28 @@ ANALYZE publ;
 
 **1. Prepare & Run: High Selectivity (Year)**
 
-````````sql
+```sql
 CLUSTER publ USING year_bplus_idx;
 ANALYZE publ;
-` ``
+```
 
 - **Run Python:** `HIGH_SELECTIVITY`.
 
 **2. Prepare & Run: Low Selectivity (Booktitle)**
 
-```````sql
+```sql
 CLUSTER publ USING title_bplus_idx;
 ANALYZE publ;
-` ``
+```
 
 - **Run Python:** `LOW_SELECTIVITY`.
 
 **3. Prepare & Run: Point & IN Predicate (pubID)**
 
-``````sql
+```sql
 CLUSTER publ USING pubid_bplus_idx;
 ANALYZE publ;
-` ``
+```
 
 - **Run Python:** `POINT` and `IN_PREDICATE`.
 
@@ -111,24 +111,24 @@ ANALYZE publ;
 
 **1. Prepare & Run: Point & IN Predicate (pubID)**
 
-`````sql
+```sql
 -- Shuffle data by Year, drop the old B+ tree, create Hash
 CLUSTER publ USING year_bplus_idx;
 DROP INDEX pubid_bplus_idx;
 CREATE INDEX pubid_hash_idx ON publ USING HASH (pubid);
 ANALYZE publ;
-` ``
+```
 
 - **Run Python:** `POINT` and `IN_PREDICATE`.
 
 **2. Prepare & Run: Low Selectivity (Booktitle)**
 
-````sql
+```sql
 -- Data is already shuffled by Year from the previous step
 DROP INDEX IF EXISTS title_bplus_idx;
 CREATE INDEX title_hash_idx ON publ USING HASH (booktitle);
 ANALYZE publ;
-` ``
+```
 
 - **Run Python:** `LOW_SELECTIVITY`.
 
@@ -143,7 +143,6 @@ CLUSTER publ USING temp_shuffle_idx;
 DROP INDEX IF EXISTS year_bplus_idx;
 CREATE INDEX year_hash_idx ON publ USING HASH (year);
 ANALYZE publ;
-` ``
+```
 
 - **Run Python:** `HIGH_SELECTIVITY`.
-```
