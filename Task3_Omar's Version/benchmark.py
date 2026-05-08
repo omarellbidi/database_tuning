@@ -5,22 +5,35 @@ import psycopg2
 from db_config import get_connection 
 
 # ==========================================
-# 1. SAMPLE DATA (Randomly picked for cache busting)
+# 1. DYNAMIC SAMPLE DATA CACHE
 # ==========================================
-SAMPLE_PUBIDS = [
-    'journals/automatica/DehghaniLA', 'conf/crypto/BressonSS02', 'conf/isbi/ArdekaniS04',
-    'conf/dac/Lanzo92', 'conf/ipps/Sobe04', 'conf/conpar/LeiteB92',
-    'journals/tomccap/GhineaDGC07', 'conf/cp/SimonisO08', 'journals/jal/Xu00', 'conf/sigmod/LiuC07'
-]
+# We initialize empty lists here; they will be filled by the database
+SAMPLE_PUBIDS = []
+SAMPLE_TITLES = []
+SAMPLE_YEARS = []
 
-SAMPLE_TITLES = [
-    'SBRN', 'WRAC', 'IJCSLP Workshop on Concurrent and Parallel Implementati...',
-    'ICVS', 'RelMiCS', 'Security and Management', 'RSKD',
-    'Computer Science Today', 'Architecture and Protocols for High-Speed Networks',
-    'Computational Discovery of Scientific Knowledge'
-]
-
-SAMPLE_YEARS = ['1974', '1952', '1994', '1959', '2005', '1976', '1950', '1991', '1968', '1987']
+def pre_fetch_sample_data(conn):
+    """Fetches a large pool of random data BEFORE the tests start to defeat RAM caching."""
+    print("Pre-fetching dynamic random sample data from the database...")
+    cur = conn.cursor()
+    
+    # 1. Get 1,000 random pubIDs (No DISTINCT needed here since IDs are already unique)
+    cur.execute("SELECT pubid FROM publ WHERE pubid IS NOT NULL ORDER BY RANDOM() LIMIT 1000;")
+    global SAMPLE_PUBIDS
+    SAMPLE_PUBIDS = [row[0] for row in cur.fetchall()]
+    
+    # 2. Get 100 random titles (Fixed: using a subquery to handle DISTINCT + RANDOM safely)
+    cur.execute("SELECT booktitle FROM (SELECT DISTINCT booktitle FROM publ WHERE booktitle IS NOT NULL) AS sub ORDER BY RANDOM() LIMIT 100;")
+    global SAMPLE_TITLES
+    SAMPLE_TITLES = [row[0] for row in cur.fetchall()]
+    
+    # 3. Get 50 random years (Fixed: using a subquery to handle DISTINCT + RANDOM safely)
+    cur.execute("SELECT year FROM (SELECT DISTINCT year FROM publ WHERE year IS NOT NULL) AS sub ORDER BY RANDOM() LIMIT 50;")
+    global SAMPLE_YEARS
+    SAMPLE_YEARS = [row[0] for row in cur.fetchall()]
+    
+    cur.close()
+    print(f"Loaded {len(SAMPLE_PUBIDS)} IDs, {len(SAMPLE_TITLES)} Titles, and {len(SAMPLE_YEARS)} Years.\n")
 
 # ==========================================
 # 2. CORE EXECUTION ENGINE
@@ -51,9 +64,18 @@ def run_65s_benchmark(conn, test_name, query_template, param_generator):
     avg_runtime = duration / query_count
     qps = query_count / duration
 
-    print(f"DONE. Total Queries: {query_count}")
-    print(f"Average Runtime: {avg_runtime:.6f} seconds")
-    print(f"Throughput: {qps:.2f} queries/second\n")
+    result_str = (
+        f"DONE. Total Queries: {query_count}\n"
+        f"Average Runtime: {avg_runtime:.6f} seconds\n"
+        f"Throughput: {qps:.2f} queries/second\n"
+    )
+    
+    print(result_str)
+    
+    # Append results to a safe text file so you don't lose them!
+    with open("benchmark_results.txt", "a") as f:
+        f.write(f"--- {test_name} ---\n")
+        f.write(result_str + "\n")
     
     cur.close()
 
@@ -110,18 +132,36 @@ def main():
 
     conn = get_connection()
     
+    # ---------------------------------------------------------
+    # DYNAMIC DATA PRE-FETCH
+    # ---------------------------------------------------------
+    pre_fetch_sample_data(conn)
+    
     print(f"STARTING DATABASE TUNING BENCHMARKS...")
     print(f"Selected Mode: [{args.test.upper()}]")
     print("NOTE: Ensure this script is running directly on the database server to eliminate network latency!\n")
+    
+    # Clear out the log file before a fresh run
+    with open("benchmark_results.txt", "a") as f:
+        f.write(f"\n================ NEW BENCHMARK RUN: {args.test.upper()} ================\n")
 
-    # ---------------------------------------------------------
-    # PHASE 1: TABLE SCAN (No Indexes)
-    # ---------------------------------------------------------
+# ---------------------------------------------------------
+# PHASE 1: TABLE SCAN (No Indexes)
+# ---------------------------------------------------------
     if args.test in ['all', 'scan']:
         print("================ PHASE 1: TABLE SCAN ================")
         execute_sql(conn, """
+            -- 1. Drop all possible indexes from any previous tests
             DROP INDEX IF EXISTS year_idx, title_idx, pubid_idx;
-            ALTER TABLE publ SET WITHOUT CLUSTER;
+            
+            -- 2. Create a random column, sort the physical disk by it, and delete it.
+            -- This guarantees the table is physically randomized for the baseline test!
+            ALTER TABLE publ ADD COLUMN IF NOT EXISTS temp_rand float DEFAULT random();
+            CREATE INDEX temp_rand_idx ON publ(temp_rand);
+            CLUSTER publ USING temp_rand_idx;
+            ALTER TABLE publ DROP COLUMN temp_rand;
+            
+            -- 3. Update the database 
             ANALYZE publ;
         """)
         for shape, (sql, param_gen) in queries.items():
@@ -161,7 +201,7 @@ def main():
             execute_sql(conn, setup_sql + " ANALYZE publ;")
             run_65s_benchmark(conn, f"Non-Clustered B-Tree - {shape}", queries[shape][0], queries[shape][1])
 
-# ---------------------------------------------------------
+    # ---------------------------------------------------------
     # PHASE 4: HASH INDEX
     # ---------------------------------------------------------
     if args.test in ['all', 'hash']:
@@ -190,6 +230,8 @@ def main():
     
     conn.close()
     print("ALL REQUESTED BENCHMARKS COMPLETED SUCCESSFULLY.")
+    print("Results have been saved to 'benchmark_results.txt'")
 
 if __name__ == "__main__":
     main()
+    

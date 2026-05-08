@@ -1,3 +1,11 @@
+Python 3.13.6 (v3.13.6:4e665351082, Aug  6 2025, 11:22:35) [Clang 16.0.0 (clang-1600.0.26.6)] on darwin
+Enter "help" below or click "Help" above for more information.
+
+= RESTART: /Users/omarellbidi/Desktop/UNI/Semster 6/Tuning  PS/Task 3 /task3_benchmark.py
+STARTING DATABASE TUNING BENCHMARKS...
+Selected Mode: [ALL]
+NOTE: Ensure this script is running directly on the database server to eliminate network latency!
+
 ================ PHASE 1: TABLE SCAN ================
 
 --- Table Scan - POINT ---
