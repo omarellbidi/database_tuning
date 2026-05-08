@@ -1,0 +1,491 @@
+\documentclass[11pt]{scrartcl}
+
+\usepackage[top=1.5cm]{geometry}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\youranswerhere}{[Your answer goes here \ldots]}
+\renewcommand{\thesubsection}{\arabic{subsection}}
+
+\lstdefinestyle{dbtsql}{
+  language=SQL,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{magenta!75!black},
+  stringstyle=\color{green!50!black},
+  showspaces=false,
+  showstringspaces=false,
+  commentstyle=\color{gray}}
+
+\title{
+  \textbf{\large Assignment 3} \\
+  Index Tuning -- Selection \\
+  {\large Database Tuning}}
+
+\author{
+  Group B15 \\
+  \large El Lbidi Omar, 12046411 \\
+  \large Lastname2 Firstname2, StudentID2 \\
+  \large Lastname3 Firstname3, StudentID3
+}
+
+\begin{document}
+
+\maketitle
+
+\paragraph{Notes}
+
+\begin{itemize}
+  \item Do not forget to run \lstinline[style=dbtsql]{ANALYZE tablename} after creating or changing a table.
+  \item Use \lstinline[style=dbtsql]{EXPLAIN ANALYZE} for the query plans that you display in the report.
+\end{itemize}
+
+\subsection*{Experimental Setup}
+
+How do you send the queries to the database? How do you measure the execution time for a sequence of queries?
+
+We sent queries to the PostgreSQL database using a Python script connecting via the \texttt{psycopg2} database driver. To avoid network latencies skewing the results, the client script was executed directly on the local database server.
+
+To measure execution time, we utilized a \texttt{while} loop constrained by the system clock (\texttt{time.time() - start\_time < 65}). This continuously executed the target query for a fixed duration of 65 seconds. A counter tracked the total number of queries completed. The average runtime per query was calculated by dividing the total duration by the total number of queries. Throughput (queries per second) is calculated as the inverse of the average runtime.
+
+\textbf{Important Note on Caching \& Baselines:} To prevent database RAM caching from artificially inflating our throughput, our script pre-fetched a dynamic pool of up to 1,000 random, distinct records from the database before the timer started. Python's \texttt{random.choice()} function was then used to select a different condition for every single query iteration, forcing continuous index traversal. Furthermore, before running the Table Scan baseline, the physical disk was completely scrambled by clustering the table on a temporary \texttt{DEFAULT random()} column to guarantee an unbiased, un-ordered hard drive state.
+
+\subsection*{Clustering B$^+$ Tree Index}
+
+\paragraph{Point Query}
+
+Repeat the following query multiple times with different conditions for \texttt{pubID}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+We randomly cycled through a dynamically pre-fetched pool of 1,000 distinct \texttt{pubID}s.
+
+Show the runtime results and compute the throughput.
+
+Average Runtime: 0.000046 seconds \\
+Throughput: $\approx$ 21,908 queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Index Scan using pubid_bplus_idx on publ (cost=0.43..8.45 rows=1 width=112)
+  Index Cond: ((pubid)::text = 'journals/automatica/DehghaniLA'::text)
+\end{verbatim}}
+
+\paragraph{Multipoint Query vs. Multipoint Query IN-Predicate -- Low Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{booktitle}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE booktitle = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+
+Which conditions did you use?
+
+For \texttt{booktitle}, we randomly cycled through a pre-fetched pool of 100 distinct titles. \\
+For the IN-predicate, we randomly sampled 3 unique \texttt{pubID}s per query from our pool of 1,000 distinct pubIDs.
+
+Show the runtime results and compute the throughput.
+
+Low Selectivity (\texttt{booktitle}): \\
+Average Runtime: 0.000162 seconds \\
+Throughput: $\approx 6,184$ queries/second
+
+\vspace{0.5em}
+IN-Predicate (\texttt{pubID}): \\
+Average Runtime: 0.000069 seconds \\
+Throughput: $\approx 14,580$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Index Scan using title_bplus_idx on publ (cost=0.43..14.54 rows=178 width=112)
+  Index Cond: ((booktitle)::text = 'SBRN'::text)
+\end{verbatim}}
+
+\paragraph{Multipoint Query -- High Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{year}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE year = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+We randomly cycled through a dynamically pre-fetched pool of 50 distinct years.
+
+Show the runtime results and compute the throughput.
+
+Average Runtime: 0.010966 seconds \\
+Throughput: $\approx 91$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Index Scan using year_bplus_idx on publ (cost=0.43..87.11 rows=2096 width=112)
+  Index Cond: ((year)::text = '1974'::text)
+\end{verbatim}}
+
+\subsection*{Non-Clustering B$^+$ Tree Index}
+
+\emph{Note:} Make sure the data is not physically ordered by the indexed attributes due to the clustering index that you created before. \\
+\emph{To ensure the data was not physically ordered by the attribute being tested, we physically scattered the data prior to the test by clustering the table on an independent attribute (e.g., clustering by \texttt{booktitle} before testing the index on \texttt{year}).}
+
+\paragraph{Point Query}
+
+Repeat the following query multiple times with different conditions for \texttt{pubID}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+We randomly cycled through a dynamically pre-fetched pool of 1,000 distinct \texttt{pubID}s.
+
+Show the runtime results and compute the throughput.
+
+Average Runtime: 0.000047 seconds \\
+Throughput: $\approx 21,249$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Index Scan using pubid_bplus_idx on publ (cost=0.43..8.45 rows=1 width=112)
+  Index Cond: ((pubid)::text = 'journals/automatica/DehghaniLA'::text)
+\end{verbatim}}
+
+\paragraph{Multipoint Query vs. Multipoint Query IN-Predicate -- Low Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{booktitle}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE booktitle = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+
+Which conditions did you use?
+
+For \texttt{booktitle}, we randomly cycled through a pre-fetched pool of 100 distinct titles. \\
+For the IN-predicate, we randomly sampled 3 unique \texttt{pubID}s per query from our pool of 1,000 distinct pubIDs.
+
+Show the runtime results and compute the throughput.
+
+Low Selectivity (\texttt{booktitle}): \\
+Average Runtime: 0.000159 seconds \\
+Throughput: $\approx 6,272$ queries/second
+
+\vspace{0.5em}
+IN-Predicate (\texttt{pubID}): \\
+Average Runtime: 0.000068 seconds \\
+Throughput: $\approx 14,757$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Bitmap Heap Scan on publ (cost=5.80..668.84 rows=177 width=112)
+  Recheck Cond: ((booktitle)::text = 'SBRN'::text)
+  -> Bitmap Index Scan on title_bplus_idx (cost=0.00..5.75 rows=177 width=0)
+       Index Cond: ((booktitle)::text = 'SBRN'::text)
+\end{verbatim}}
+
+\paragraph{Multipoint Query -- High Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{year}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE year = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+We randomly cycled through a dynamically pre-fetched pool of 50 distinct years.
+
+Show the runtime results and compute the throughput.
+
+Average Runtime: 0.010742 seconds \\
+Throughput: $\approx 93$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Bitmap Heap Scan on publ (cost=52.42..5044.40 rows=1603 width=112)
+  Recheck Cond: ((year)::text = '1974'::text)
+  -> Bitmap Index Scan on year_bplus_idx (cost=0.00..52.02 rows=1603 width=0)
+       Index Cond: ((year)::text = '1974'::text)
+\end{verbatim}}
+
+\subsection*{Non-Clustering Hash Index}
+
+\emph{Note:} Make sure the data is not physically ordered by the indexed attributes due to the clustering index that you created before. \\
+\emph{To ensure the data was not physically ordered by the attribute being tested, we physically scattered the data prior to the test by clustering the table on an independent attribute (e.g., clustering by \texttt{booktitle} before testing the index on \texttt{year}).}
+
+\paragraph{Point Query}
+
+Repeat the following query multiple times with different conditions for \texttt{pubID}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+We randomly cycled through a dynamically pre-fetched pool of 1,000 distinct \texttt{pubID}s.
+
+Show the runtime results and compute the throughput.
+
+Average Runtime: 0.000040 seconds \\
+Throughput: $\approx 25,090$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Index Scan using pubid_hash_idx on publ (cost=0.00..8.02 rows=1 width=112)
+  Index Cond: ((pubid)::text = 'journals/automatica/DehghaniLA'::text)
+\end{verbatim}}
+
+\paragraph{Multipoint Query vs. Multipoint Query IN-Predicate -- Low Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{booktitle}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE booktitle = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+
+Which conditions did you use?
+
+For \texttt{booktitle}, we randomly cycled through a pre-fetched pool of 100 distinct titles. \\
+For the IN-predicate, we randomly sampled 3 unique \texttt{pubID}s per query from our pool of 1,000 distinct pubIDs.
+
+Show the runtime results and compute the throughput.
+
+Low Selectivity (\texttt{booktitle}): \\
+Average Runtime: 0.000161 seconds \\
+Throughput: $\approx 6,225$ queries/second
+
+\vspace{0.5em}
+IN-Predicate (\texttt{pubID}): \\
+Average Runtime: 0.000046 seconds \\
+Throughput: $\approx 21,961$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Bitmap Heap Scan on publ (cost=12.02..23.96 rows=3 width=112)
+  Recheck Cond: ((pubid)::text = ANY ('{...}'::text[]))
+  -> Bitmap Index Scan on pubid_hash_idx (cost=0.00..12.02 rows=3 width=0)
+       Index Cond: ((pubid)::text = ANY ('{...}'::text[]))
+\end{verbatim}}
+
+\paragraph{Multipoint Query -- High Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{year}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE year = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+We randomly cycled through a dynamically pre-fetched pool of 50 distinct years.
+
+Show the runtime results and compute the throughput.
+
+Average Runtime: 0.011398 seconds \\
+Throughput: $\approx 88$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Bitmap Heap Scan on publ (cost=52.42..5044.40 rows=1603 width=112)
+  Recheck Cond: ((year)::text = '1974'::text)
+  -> Bitmap Index Scan on year_hash_idx (cost=0.00..52.02 rows=1603 width=0)
+       Index Cond: ((year)::text = '1974'::text)
+\end{verbatim}}
+
+\subsection*{Table Scan}
+
+\emph{Note:} Make sure the data is not physically ordered by the indexed attributes due to the clustering index that you created before. \\
+\emph{To ensure the data was not physically ordered by the attribute being tested, we physically scattered the data prior to the test by clustering the table on an independent attribute (e.g., clustering by \texttt{booktitle} before testing the table scan for \texttt{year}).}
+
+\paragraph{Point Query}
+
+Repeat the following query multiple times with different conditions for \texttt{pubID}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+
+Which conditions did you use?
+
+We randomly cycled through a dynamically pre-fetched pool of 1,000 distinct \texttt{pubID}s. \\
+For the IN-predicate, we randomly sampled 3 unique \texttt{pubID}s per query from our pool of 1,000 distinct pubIDs.
+
+Show the runtime results and compute the throughput.
+
+Point (\texttt{pubID}): \\
+Average Runtime: 0.034217 seconds \\
+Throughput: $\approx 29$ queries/second
+
+\vspace{0.5em}
+IN-Predicate (\texttt{pubID}): \\
+Average Runtime: 0.071598 seconds \\
+Throughput: $\approx 14$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Gather (cost=1000.00..29785.09 rows=1 width=112)
+  Workers Planned: 2
+  -> Parallel Seq Scan on publ (cost=0.00..28784.99 rows=1 width=112)
+       Filter: ((pubid)::text = 'conf/sigmod/LiuC07'::text)
+\end{verbatim}}
+
+\paragraph{Multipoint Query vs. Multipoint Query IN-Predicate -- Low Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{booktitle}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE booktitle = ...
+\end{lstlisting}
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE pubID IN (...)
+\end{lstlisting}
+
+Which conditions did you use?
+
+For \texttt{booktitle}, we randomly cycled through a pre-fetched pool of 100 distinct titles.
+
+Show the runtime results and compute the throughput.
+
+Average Runtime: 0.038776 seconds \\
+Throughput: $\approx 26$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Gather (cost=1000.00..29802.79 rows=178 width=112)
+  Workers Planned: 2
+  -> Parallel Seq Scan on publ (cost=0.00..28784.99 rows=74 width=112)
+       Filter: ((booktitle)::text = 'SBRN'::text)
+\end{verbatim}}
+
+\paragraph{Multipoint Query -- High Selectivity}
+
+Repeat the following query multiple times with different conditions for \texttt{year}.
+
+\begin{lstlisting}[style=dbtsql]
+SELECT * FROM Publ WHERE year = ...
+\end{lstlisting}
+
+Which conditions did you use?
+
+We randomly cycled through a dynamically pre-fetched pool of 50 distinct years.
+
+Show the runtime results and compute the throughput.
+
+Average Runtime: 0.089048 seconds \\
+Throughput: $\approx 11$ queries/second
+
+Query plan (for one of the queries):
+
+{\small
+\parskip0pt\begin{verbatim}
+Gather (cost=1000.00..29957.59 rows=1726 width=112)
+  Workers Planned: 2
+  -> Parallel Seq Scan on publ (cost=0.00..28784.99 rows=719 width=112)
+       Filter: ((year)::text = '1974'::text)
+\end{verbatim}}
+
+\subsection*{Discussion}
+
+Give the throughput of the query types and index types in queries/second.
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c|c|c|c|c}
+    & clustering & non-clust.\ B$^+$ tree & non-clust.\ hash & table scan
+      \tabularnewline
+    \hline
+    point (\texttt{pubID}) & 21,908 & 21,249 & 25,090 & 29 \tabularnewline
+    \hline
+    multipoint (\texttt{booktitle}) & 6,184 & 6,272 & 6,225 & 26
+      \tabularnewline
+    \hline
+    multipoint-IN (\texttt{pubID}) & 14,580 & 14,757 & 21,961 & 14
+      \tabularnewline
+    \hline
+    multipoint (\texttt{year}) & 91 & 93 & 88 & 11
+      \tabularnewline
+  \end{tabular}
+\end{table}
+
+Discuss the runtime results for the different index types and the table scan. Are the results expected? Why (not)?
+
+Overall, the results align strongly with database architectural expectations. The Hash Index provides the absolute highest throughput for Point and IN-predicate queries ($\approx$25,000 q/s), as hash functions evaluate exact matches in $O(1)$ time, bypassing the $O(\log n)$ tree traversal required by B$^+$ Trees. Conversely, for High Selectivity range queries (\texttt{year}), the Clustered B$^+$ Tree generally provides the most stable performance since sequential I/O allows the engine to rapidly read adjacent blocks, while the Non-Clustered Hash Index must execute random jumps to scattered disk addresses.
+
+Interestingly, across almost all query types, the throughput difference between Clustered and Non-Clustered B$^+$ Trees was negligible, with the Non-Clustered index actually edging out slight statistical wins in three of the four tests (Low Selectivity, IN-Predicate, and High Selectivity). While traditional database theory dictates that Clustered indexes should drastically outperform Non-Clustered indexes for multipoint queries due to their sequential physical layout, modern query planners and hardware mitigate this gap. PostgreSQL utilizes a \texttt{Bitmap Heap Scan} for the Non-Clustered index, which gathers and perfectly sorts the scattered physical addresses in memory before fetching them. When combined with the near-zero random-access penalty of modern NVMe SSDs and active RAM caching during the 65-second workload, the physical clustering advantage effectively disappears, resulting in statistical ties across the board rather than the expected performance disparities.
+
+Finally, Table Scans (Sequential Scans) were broadly outclassed across the board as expected, maxing out at roughly 29 queries per second. Scanning 3 million rows for a small subset of data is fundamentally inefficient and scales poorly regardless of caching mechanics.
+
+\subsection*{Time Spent on this Assignment}
+
+Time in hours per person: \\ 
+Omar El Lbidi: 6.5 Hours
+
+\subsection*{References}
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c}
+    \hline
+    \textbf{Important:} Reference your information sources! \tabularnewline
+    Remove this section if you use footnotes to reference your information sources. \tabularnewline
+    \hline
+  \end{tabular}
+\end{table}
+
+\begin{enumerate}
+  \item PostgreSQL Global Development Group. \textit{PostgreSQL 14 Documentation: Index Types}. \\
+        \href{https://www.postgresql.org/docs/14/indexes-types.html}{https://www.postgresql.org/docs/14/indexes-types.html}
+\end{enumerate}
+
+\end{document}
