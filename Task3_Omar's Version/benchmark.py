@@ -17,17 +17,17 @@ def pre_fetch_sample_data(conn):
     print("Pre-fetching dynamic random sample data from the database...")
     cur = conn.cursor()
     
-    # 1. Get 1,000 random pubIDs (No DISTINCT needed here since IDs are already unique)
+    # 1. Get 1,000 random pubIDs 
     cur.execute("SELECT pubid FROM publ WHERE pubid IS NOT NULL ORDER BY RANDOM() LIMIT 1000;")
     global SAMPLE_PUBIDS
     SAMPLE_PUBIDS = [row[0] for row in cur.fetchall()]
     
-    # 2. Get 100 random titles (Fixed: using a subquery to handle DISTINCT + RANDOM safely)
+    # 2. Get 100 random titles 
     cur.execute("SELECT booktitle FROM (SELECT DISTINCT booktitle FROM publ WHERE booktitle IS NOT NULL) AS sub ORDER BY RANDOM() LIMIT 100;")
     global SAMPLE_TITLES
     SAMPLE_TITLES = [row[0] for row in cur.fetchall()]
     
-    # 3. Get 50 random years (Fixed: using a subquery to handle DISTINCT + RANDOM safely)
+    # 3. Get 50 random years 
     cur.execute("SELECT year FROM (SELECT DISTINCT year FROM publ WHERE year IS NOT NULL) AS sub ORDER BY RANDOM() LIMIT 50;")
     global SAMPLE_YEARS
     SAMPLE_YEARS = [row[0] for row in cur.fetchall()]
@@ -36,7 +36,7 @@ def pre_fetch_sample_data(conn):
     print(f"Loaded {len(SAMPLE_PUBIDS)} IDs, {len(SAMPLE_TITLES)} Titles, and {len(SAMPLE_YEARS)} Years.\n")
 
 # ==========================================
-# 2. CORE EXECUTION ENGINE
+# 2. EXECUTION ENGINE
 # ==========================================
 def run_65s_benchmark(conn, test_name, query_template, param_generator):
     cur = conn.cursor()
@@ -72,7 +72,7 @@ def run_65s_benchmark(conn, test_name, query_template, param_generator):
     
     print(result_str)
     
-    # Append results to a safe text file so you don't lose them!
+    # Append results to a text file s
     with open("benchmark_results.txt", "a") as f:
         f.write(f"--- {test_name} ---\n")
         f.write(result_str + "\n")
