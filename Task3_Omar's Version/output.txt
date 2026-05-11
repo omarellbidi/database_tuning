@@ -1,16 +1,5 @@
-ython 3.13.6 (v3.13.6:4e665351082, Aug  6 2025, 11:22:35) [Clang 16.0.0 (clang-1600.0.26.6)] on darwin
-Enter "help" below or click "Help" above for more information.
-
-= RESTART: /Users/omarellbidi/Desktop/UNI/Semster 6/Tuning  PS/T3/benchmark.py =
-Pre-fetching dynamic random sample data from the database...
-Loaded 1000 IDs, 100 Titles, and 50 Years.
-
-STARTING DATABASE TUNING BENCHMARKS...
-Selected Mode: [ALL]
-NOTE: Ensure this script is running directly on the database server to eliminate network latency!
 
 ================ PHASE 1: TABLE SCAN ================
-
 --- Table Scan - POINT ---
 QUERY PLAN:
 Gather  (cost=1000.00..31078.09 rows=1 width=112) (actual time=89.281..90.033 rows=1 loops=1)
