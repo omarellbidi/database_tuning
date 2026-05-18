@@ -44,7 +44,7 @@ def main():
         # TASK 2: Forced Indexed Nested Loop Join
         # ==========================================
         # TODO: Implement Task 2 here. 
-        # Tip: Use SET enable_nestloop = on; SET enable_mergejoin = off; SET enable_hashjoin = off;
+        
    
         pass
 
