@@ -51,10 +51,7 @@ def main():
         # ==========================================
         # TASK 3: Forced Sort-Merge Join
         # ==========================================
-        # TODO: Implement Task 3 here.
-        # ==========================================
-        # TASK 3: Force Sort-Merge Join
-        # ==========================================
+        
         f.write("\n\n>>> TASK 3: FORCED SORT-MERGE JOIN\n")
         set_join_switches(conn, nestloop='off', mergejoin='on', hashjoin='off')
 
