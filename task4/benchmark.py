@@ -68,30 +68,30 @@ def main():
         pass
 
         # ==========================================
-        # TASK 2: Forced Indexed Nested Loop Join (Nargiz's Part)
+        # TASK 2: Forced Indexed Nested Loop Join 
         # ==========================================
+        
         f.write("\n\n>>> TASK 2: FORCED INDEXED NESTED LOOP JOIN\n")
         set_join_switches(conn, nestloop='on', mergejoin='off', hashjoin='off')
 
-        # 2a: Non-clustering Index auf Publ.pubID
+        # 2a: Non-clustering on Publ.pubID
         drop_all_indexes(conn)
-        execute_sql(conn, "CREATE INDEX i_publ_pubid ON Publ(pubID); ANALYZE Publ;")
+        execute_sql(conn, "CREATE INDEX publ_pubid_idx ON Publ(pubID); ANALYZE Publ;")
         for q_name, sql in QUERIES.items():
             run_explain_analyze(conn, "2a: INLJ - Non-Clustered Publ", q_name, sql, f)
 
-        # 2b: Non-clustering Index auf Auth.pubID
+        # 2b: Non-clustering on Auth.pubID
         drop_all_indexes(conn)
-        execute_sql(conn, "CREATE INDEX i_auth_pubid ON Auth(pubID); ANALYZE Auth;")
+        execute_sql(conn, "CREATE INDEX auth_pubid_idx ON Auth(pubID); ANALYZE Auth;")
         for q_name, sql in QUERIES.items():
             run_explain_analyze(conn, "2b: INLJ - Non-Clustered Auth", q_name, sql, f)
 
-        # 2c: Non-clustering Index auf Both
+        # 2c: Non-clustering on both
         drop_all_indexes(conn)
-        execute_sql(conn, "CREATE INDEX i_publ_pubid ON Publ(pubID); ANALYZE Publ;")
-        execute_sql(conn, "CREATE INDEX i_auth_pubid ON Auth(pubID); ANALYZE Auth;")
+        execute_sql(conn, "CREATE INDEX publ_pubid_idx ON Publ(pubID); ANALYZE Publ;")
+        execute_sql(conn, "CREATE INDEX auth_pubid_idx ON Auth(pubID); ANALYZE Auth;")
         for q_name, sql in QUERIES.items():
             run_explain_analyze(conn, "2c: INLJ - Non-Clustered Both", q_name, sql, f)
-
 
         # ==========================================
         # TASK 3: Forced Sort-Merge Join (Omar's Part)
