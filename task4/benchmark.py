@@ -64,8 +64,28 @@ def main():
         # ==========================================
         # TASK 1: System Proposals (All joins enabled)
         # ==========================================
-        # TODO: implement Task 1 here.
-        pass
+        f.write("\n\n>>> TASK 1: SYSTEM PROPOSALS\n")
+        # 1a: No index
+        drop_all_indexes(conn)
+        for q_name, sql in QUERIES.items():
+            run_explain_analyze(conn, "1a: No Index", q_name, sql, f)
+
+        # 1b: Unique non-clustering index on Publ.pubID
+        drop_all_indexes(conn)
+        execute_sql(conn, "CREATE UNIQUE INDEX publ_pubid_unique_idx ON Publ(pubID); ANALYZE Publ;")
+        for q_name, sql in QUERIES.items():
+            run_explain_analyze(conn, "1b: Unique Non-Clustering on Publ.pubID", q_name, sql, f)
+
+        # 1c: Clustering on Publ.pubID and Auth.pubID
+        drop_all_indexes(conn)
+        execute_sql(conn, "CREATE INDEX publ_pubid_idx ON Publ(pubID);")
+        execute_sql(conn, "CREATE INDEX auth_pubid_idx ON Auth(pubID);")
+        execute_sql(conn, "CLUSTER Publ USING publ_pubid_idx; CLUSTER Auth USING auth_pubid_idx; ANALYZE Publ; ANALYZE Auth;")
+        for q_name, sql in QUERIES.items():
+            run_explain_analyze(conn, "1c: Clustering on Publ.pubID and Auth.pubID", q_name, sql, f)
+
+        drop_all_indexes(conn) # Clean up
+
 
         # ==========================================
         # TASK 2: Forced Indexed Nested Loop Join 
@@ -119,7 +139,18 @@ def main():
         # ==========================================
         # TASK 4: Forced Hash Join 
         # ==========================================
-        # TODO: implement Task 4 here.
+        f.write("\n\n>>> TASK 4: FORCED HASH JOIN\n")
+        set_join_switches(conn, nestloop='off', mergejoin='off', hashjoin='on')
+
+        # 4a: No index
+        drop_all_indexes(conn)
+        for q_name, sql in QUERIES.items():
+            run_explain_analyze(conn, "4a: HJ - No Index", q_name, sql, f)
+
+        # Reset table and runtime configs
+        set_join_switches(conn) # Reset to all on
+        drop_all_indexes(conn) # Clean up
+        
 
 if __name__ == "__main__":
     main()
