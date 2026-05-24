@@ -1,0 +1,302 @@
+\documentclass[11pt]{scrartcl}
+
+\usepackage[top=1.5cm]{geometry}
+\usepackage{float}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\youranswerhere}{[Your answer goes here \ldots]}
+\renewcommand{\thesubsection}{\arabic{subsection}}
+
+\title{
+  \textbf{\large Assignment 5} \\
+  Join Tuning \\
+  {\large Database Tuning}}
+
+\author{
+  Group Name (e.g. A1, B5, B3) \\
+  \large Lastname1 Firstname1, StudentID1 \\
+  \large Lastname2 Firstname2, StudentID2 \\
+  \large Lastname3 Firstname3, StudentID3
+}
+
+\begin{document}
+
+\maketitle
+
+\subsection*{Experimental Setup}
+
+Describe your experimental setup in a few lines.
+
+\youranswerhere{}
+
+\subsection*{Join Strategies Proposed by System}
+
+\paragraph{Response times}\mbox{}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{l|l|l}
+    Indexes & Join Strategy Q1 & Join Strategy Q2 \tabularnewline
+    \hline
+    no index & 1716.181 & 422.025 \tabularnewline
+    unique non-clustering on \texttt{Publ.pubID} & 1681.725 & 112.743
+      \tabularnewline
+    clustering on \texttt{Publ.pubID} and \texttt{Auth.pubID} & 1082.134 & 257.781
+      \tabularnewline
+  \end{tabular}
+\end{table}
+
+\paragraph{Discussion}
+\textbf{No index.}
+For Q1 the system chooses a \emph{Hash Join}: it scans \texttt{Publication} sequentially, builds a hash table on \texttt{pubID}, and then probes it while scanning \texttt{Author} sequentially.
+This is the expected choice when no index is available and the join produces millions of output rows, because a hash join runs in $O(n+m)$ and only requires one pass over each relation (assuming the hash table fits in memory).
+For Q2 the system uses a \emph{Parallel Hash Join}: the build side is the filtered \texttt{Author} scan (very few rows after the \texttt{name} filter), and the probe side is a parallel sequential scan of \texttt{Publication}.
+Because the filter on \texttt{Auth.name} is applied before the join and reduces the inner side dramatically, parallelism further reduces wall-clock time.
+Without any index the planner cannot avoid reading all author pages to evaluate the name predicate, so a sequential scan with a filter remains the only option.
+
+\textbf{Unique non-clustering index on \texttt{Publ.pubID}.}
+For Q1 the plan is again a \emph{Hash Join} identical to the no-index case.
+Because Q1 retrieves all publications (no selectivity on the \texttt{Publication} side), using the non-clustering index would require one random I/O per row — far more expensive than a single sequential scan — so the planner correctly ignores the index.
+For Q2 the system switches to a \emph{Nested Loop}: it first scans \texttt{Author} sequentially with the \texttt{name} filter and then, for each of those tuples, performs an \emph{Index Scan} on \texttt{Publication} via \texttt{temp\_nonc\_publ} to retrieve the corresponding publication.
+This is the expected choice: with a highly selective outer relation the nested loop avoids building any hash table, and each index lookup costs only $O(\log n)$.
+The non-clustering index is sufficient here because only a small number of random page accesses are needed (one per author tuple of `Divesh Srivastava').
+
+\textbf{Clustering indexes on \texttt{Publ.pubID} and \texttt{Auth.pubID}.}
+For Q1 the system selects a \emph{Merge Join}: both tables are accessed via their respective clustering index scans (\texttt{temp\_c\_publ} and \texttt{temp\_c\_auth}), which deliver rows already sorted on \texttt{pubID}.
+A merge join over two pre-sorted inputs runs in $O(n+m)$ without any additional sort step, and the clustering indexes ensure sequential I/O on both sides, making this the most efficient strategy for the large Cartesian-like join.
+For Q2 the planner again chooses a \emph{Nested Loop} with a parallel sequential scan of \texttt{Author} (filter on \texttt{name}) as the outer relation and an \emph{Index Scan} on \texttt{Publication} as the inner.
+Even though a clustering index on \texttt{Auth.pubID} exists, scanning \texttt{Author} sequentially with a filter is cheaper than using that index to find `Divesh Srivastava' entries (the name column is not indexed).
+Once the few matching author tuples are found, the clustering index on \texttt{Publ.pubID} enables efficient point lookups, keeping the total cost low.
+The observed response times confirm these choices: Q1 benefits most from the merge join (1082\,ms vs.\ $\approx$1700\,ms without clustering), while Q2 is fastest with the non-clustering index variant (113\,ms) because the index lookup cost is the same but the non-clustering index case avoids the overhead of the parallel gather node present in the clustering variant.
+
+No Index:
+
+{\small
+\parskip0pt\begin{verbatim}
+[
+Hash Join (cost=68240.32..235012.34 rows=3095201 width=82)
+Hash Cond: ((a.pubid)::text = (p.pubid)::text)
+-> Seq Scan on author a (cost=0.00..57784.01 rows=3095201 width=38)
+-> Hash (cost=34760.14..34760.14 rows=1233214 width=89)
+-> Seq Scan on publication p (cost=0.00..34760.14 rows=1233214 width=89)
+
+Gather (cost=43952.96..73448.69 rows=24 width=82)
+Workers Planned: 2
+-> Parallel Hash Join (cost=42952.96..72446.29 rows=10 width=82)
+Hash Cond: ((p.pubid)::text = (a.pubid)::text)
+-> Parallel Seq Scan on publication p (cost=0.00..27566.39 rows=513839 width=89)
+-> Parallel Hash (cost=42952.84..42952.84 rows=10 width=38)
+-> Parallel Seq Scan on author a (cost=0.00..42952.84 rows=10 width=38)
+Filter: ((name)::text = 'Divesh Srivastava'::text)
+]
+\end{verbatim}}
+
+Unique Non-clustering index on Publ.pubID:
+
+{\small
+\parskip0pt\begin{verbatim}
+[
+Hash Join (cost=68240.32..200578.26 rows=3095201 width=82)
+Hash Cond: ((a.pubid)::text = (p.pubid)::text)
+-> Seq Scan on author a (cost=0.00..57784.01 rows=3095201 width=38)
+-> Hash (cost=34760.14..34760.14 rows=1233214 width=89)
+-> Seq Scan on publication p (cost=0.00..34760.14 rows=1233214 width=89)
+
+Gather (cost=1000.43..44039.69 rows=24 width=82)
+Workers Planned: 2
+-> Nested Loop (cost=0.43..43037.29 rows=10 width=82)
+-> Parallel Seq Scan on author a (cost=0.00..42952.84 rows=10 width=38)
+Filter: ((name)::text = 'Divesh Srivastava'::text)
+-> Index Scan using temp_nonc_publ on publication p (cost=0.43..8.45 rows=1 width=89)
+Index Cond: ((pubid)::text = (a.pubid)::text)
+]
+\end{verbatim}}
+
+Clustering index on Publ.pubID and Auth.pubID:
+
+{\small
+\parskip0pt\begin{verbatim}
+[
+Merge Join (cost=0.86..218772.58 rows=3095201 width=82)
+Merge Cond: ((p.pubid)::text = (a.pubid)::text)
+-> Index Scan using temp_c_publ on publication p (cost=0.43..67009.64 rows=1233214 width=89)
+-> Index Scan using temp_c_auth on author a (cost=0.43..110152.45 rows=3095201 width=38)
+
+Gather (cost=1000.43..44016.79 rows=24 width=83)
+Workers Planned: 2
+-> Nested Loop (cost=0.43..43014.39 rows=10 width=83)
+-> Parallel Seq Scan on author a (cost=0.00..42929.84 rows=10 width=38)
+Filter: ((name)::text = 'Divesh Srivastava'::text)
+-> Index Scan using temp_c_publ on publication p (cost=0.43..8.45 rows=1 width=90)
+Index Cond: ((pubid)::text = (a.pubid)::text)
+]
+\end{verbatim}}
+
+\subsection*{Indexed Nested Loop Join}
+
+\paragraph{Response times}\mbox{}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{l|r|r}
+    Indexes & Response time Q1 [ms] & Response time Q2 [ms] \tabularnewline
+    \hline
+    index on \texttt{Publ.pubID} & \ldots & \ldots \tabularnewline
+    index on \texttt{Auth.pubID} & \ldots & \ldots \tabularnewline
+    index on \texttt{Publ.pubID} and \texttt{Auth.pubID} & \ldots & \ldots
+        \tabularnewline
+  \end{tabular}
+\end{table}
+
+\paragraph{Query plans}\mbox{}
+
+Index on \texttt{Publ.pubID} (Q1/Q2):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plans (index on Publ.pubID) go here ...]
+\end{verbatim}}
+
+Index on \texttt{Auth.pubID} (Q1/Q2):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plans (index on Auth.pubID) go here ...]
+\end{verbatim}}
+
+Index on \texttt{Auth.pubID} and \texttt{Auth.pubID} (Q1/Q2):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plans (index on Publ.pubID and Auth.pubID) go here ...]
+\end{verbatim}}
+
+\paragraph{Discussion}
+
+Discuss your observations. Are the response times expected? Why (not)?
+
+\youranswerhere{}
+
+\subsection*{Sort-Merge Join}
+
+\paragraph{Response times}\mbox{}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{l|r|r}
+    Indexes & Response time Q1 [ms] & Response time Q2 [ms] \tabularnewline
+    \hline
+    no index & \ldots & \ldots \tabularnewline
+    two non-clustering indexes & \ldots & \ldots \tabularnewline
+    two clustering indexes & \ldots & \ldots \tabularnewline
+  \end{tabular}
+\end{table}
+
+\paragraph{Query plans}\mbox{}
+
+No index (Q1/Q2):
+
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plans (no index) go here ...]
+\end{verbatim}}
+
+Two non-clustering indexes (Q1/Q2):
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plans (two non-clustering indexes) go here ...]
+\end{verbatim}}
+
+Two clustering indexes  (Q1/Q2):
+{\small
+\parskip0pt\begin{verbatim}
+[Your query plans (two clustering indexes) go here ...]
+\end{verbatim}}
+
+\paragraph{Discussion}
+
+Discuss your observations. Are the response times expected? Why (not)?
+
+\youranswerhere{}
+
+\subsection*{Hash Join}
+
+\paragraph{Response times}\mbox{}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{l|r|r}
+    Indexes & Response time Q1 [ms] & Response time [ms] Q2 \tabularnewline
+    \hline
+    no index & 2647.080 & 101.186 \tabularnewline
+  \end{tabular}
+\end{table}
+
+\paragraph{Query plans}\mbox{}
+
+No Index (Q1/Q2):
+
+{\small
+\parskip0pt\begin{verbatim}
+[
+Hash Join (cost=68240.32..235012.34 rows=3095201 width=82)
+Hash Cond: ((a.pubid)::text = (p.pubid)::text)
+-> Seq Scan on author a (cost=0.00..57784.01 rows=3095201 width=38)
+-> Hash (cost=34760.14..34760.14 rows=1233214 width=89)
+-> Seq Scan on publication p (cost=0.00..34760.14 rows=1233214 width=89)
+
+Gather (cost=43952.96..73448.69 rows=24 width=82)
+Workers Planned: 2
+-> Parallel Hash Join (cost=42952.96..72446.29 rows=10 width=82)
+Hash Cond: ((p.pubid)::text = (a.pubid)::text)
+-> Parallel Seq Scan on publication p (cost=0.00..27566.39 rows=513839 width=89)
+-> Parallel Hash (cost=42952.84..42952.84 rows=10 width=38)
+-> Parallel Seq Scan on author a (cost=0.00..42952.84 rows=10 width=38)
+Filter: ((name)::text = 'Divesh Srivastava'::text)
+]
+\end{verbatim}}
+
+\paragraph{Discussion}
+
+<<<<<<< HEAD
+What do you think about the response time of the hash index vs.\ the response times of sort-merge and index nested loop join for each of the queries? Explain.
+
+\youranswerhere{}
+=======
+The forced hash join was measured with no index present, yielding \textbf{2647\,ms} for Q1 and \textbf{101\,ms} for Q2.
+
+\textbf{Q1 (full join, no selectivity on \texttt{name}).}
+The hash join (2647\,ms) is the slowest strategy for this query among all variants tested.
+The best sort-merge variant (two non-clustering indexes, no explicit sort needed) completes in 962\,ms, and the best indexed nested loop variant (index on \texttt{Auth.pubID} only) takes 1073\,ms.
+Even without any index, sort-merge finishes in 2215\,ms — still faster than the forced hash join.
+The reason is that Q1 produces over 3 million output rows, causing the hash table for \texttt{Publication} (1.2M tuples) to spill to disk in 32 batches (as reported by \texttt{Batches: 32}), which generates 16135 temporary pages of I/O.
+Sort-merge with indexes avoids this entirely by reading both relations in order, while INLJ with an index on \texttt{Auth.pubID} benefits from probing the smaller publication table from the outer loop.
+In short, the hash join's disk-spill overhead makes it the least attractive choice when the join result is very large.
+
+\textbf{Q2 (selective filter on \texttt{Auth.name = 'Divesh Srivastava'}).}
+Here the hash join (101\,ms) is competitive and substantially faster than sort-merge under all index configurations (301--409\,ms).
+It is also faster than the INLJ variant with only an index on \texttt{Auth.pubID} (926\,ms), although it is slightly slower than INLJ with an index on \texttt{Publ.pubID} or both (55--60\,ms).
+The Parallel Hash Join used for Q2 benefits from parallelism (2 workers): the build phase operates only on the tiny filtered author set ($\approx$183 rows), keeping the hash table entirely in memory (no batching), and the probe side scans \texttt{Publication} in parallel.
+Sort-merge is slower for Q2 because it must sort (or index-scan) the full \texttt{Publication} relation regardless of the name filter, adding significant I/O even when an index on \texttt{pubID} exists.
+The INLJ variant with a \texttt{Publ.pubID} index remains the fastest for Q2 because it probes \texttt{Publication} only for the 183 qualifying author tuples, but the hash join is the better general-purpose choice when no index on \texttt{Publ.pubID} is available.
+
+\subsection*{Time Spent on this Assignment}
+
+Time in hours per person: \textbf{XXX}
+
+\subsection*{References}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c}
+    \hline
+    \textbf{Important:} Reference your information sources! \tabularnewline
+    Remove this section if you use footnotes to reference your information
+    sources. \tabularnewline
+    \hline
+  \end{tabular}
+\end{table}
+
+\end{document}
