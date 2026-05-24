@@ -1,0 +1,179 @@
+2a)
+-- non-clustering Index auf Publ.pubID
+CREATE INDEX i_publ_pubid ON Publ(pubID);
+
+-- Hash Join ausschalten
+SET enable_hashjoin TO off;
+
+-- Sort‑Merge‑Join ausschalten
+SET enable_mergejoin TO off;
+
+-- Nested Loop aktiv lassen (Standard)
+SET enable_nestloop TO on;
+
+Q1:
+EXPLAIN ANALYZE
+SELECT name, title
+FROM Auth, Publ
+WHERE Auth.pubID = Publ.pubID;
+
+Ergebnis Q1:
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.43..984789.92 rows=3095201 width=82) (actual time=0.588..1676.811 rows=3095201 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..674269.82 rows=1289667 width=82) (actual time=0.192..1600.375 rows=1031734 loops=3)
+         ->  Parallel Seq Scan on auth  (cost=0.00..39694.67 rows=1289667 width=38) (actual time=0.064..71.879 rows=1031734 loops=3)
+         ->  Index Scan using i_publ_pubid on publ  (cost=0.43..0.48 rows=1 width=89) (actual time=0.001..0.001 rows=1 loops=3095201)
+               Index Cond: ((pubid)::text = (auth.pubid)::text)
+ Planning Time: 0.771 ms
+ Execution Time: 1773.388 ms
+(9 rows)
+
+Q2:
+EXPLAIN ANALYZE
+SELECT title
+FROM Auth, Publ
+WHERE Auth.pubID = Publ.pubID
+  AND Auth.name = 'Divesh Srivastava';
+
+Ergebnis Q2:
+Gather (cost=1000.43..44005.79 rows=24 width=67)
+(actual time=28.612..98.581 rows=183 loops=1)
+Workers Planned: 2
+Workers Launched: 2
+-> Nested Loop (cost=0.43..43003.39 rows=10 width=67)
+(actual time=14.297..82.129 rows=61 loops=3)
+-> Parallel Seq Scan on auth (cost=0.00..42918.84 rows=10 width=23)
+(actual time=14.100..81.441 rows=61 loops=3)
+Filter: ((name)::text = ’Divesh Srivastava’::text)
+Rows Removed by Filter: 1031673
+-> Index Scan using i_publ_pubid on publ (cost=0.43..8.45 rows=1 width=89)
+(actual time=0.009..0.010 rows=1 loops=183)
+Index Cond: ((pubid)::text = (auth.pubid)::text)
+Planning Time: 1.599 ms
+Execution Time: 98.637 ms
+(11 rows)
+
+2b)
+
+Index erstellen:
+
+CREATE INDEX i_auth_pubid ON Auth(pubID);
+
+-- Hash Join ausschalten
+SET enable_hashjoin TO off;
+
+-- Sort‑Merge‑Join ausschalten
+SET enable_mergejoin TO off;
+
+-- Nested Loop aktiv lassen (Standard)
+SET enable_nestloop TO on;
+
+Q1:
+EXPLAIN ANALYZE
+SELECT name, title
+FROM Auth, Publ
+WHERE Auth.pubID = Publ.pubID;
+
+Ergebnis Q1:
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.43..661190.29 rows=3095201 width=82) (actual time=0.580..836.262 rows=3095201 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..350670.19 rows=1289667 width=82) (actual time=0.149..765.593 rows=1031734 loops=3)
+         ->  Parallel Seq Scan on publ  (cost=0.00..27284.39 rows=513839 width=89) (actual time=0.050..28.758 rows=411071 loops=3)
+         ->  Index Scan using i_auth_pubid on auth  (cost=0.43..0.60 rows=3 width=38) (actual time=0.001..0.001 rows=3 loops=1233214)
+               Index Cond: ((pubid)::text = (publ.pubid)::text)
+ Planning Time: 0.690 ms
+ Execution Time: 931.636 ms
+(9 rows)
+
+Q2: 
+EXPLAIN ANALYZE
+SELECT title
+FROM Auth, Publ
+WHERE Auth.pubID = Publ.pubID
+  AND Auth.name = 'Divesh Srivastava';
+
+Ergebnis Q2:
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.43..345249.61 rows=24 width=67) (actual time=94.714..711.709 rows=183 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..344247.21 rows=10 width=67) (actual time=80.173..694.104 rows=61 loops=3)
+         ->  Parallel Seq Scan on publ  (cost=0.00..27284.39 rows=513839 width=89) (actual time=0.061..29.930 rows=411071 loops=3)
+         ->  Index Scan using i_auth_pubid on auth  (cost=0.43..0.61 rows=1 width=23) (actual time=0.001..0.001 rows=0 loops=1233214)
+               Index Cond: ((pubid)::text = (publ.pubid)::text)
+               Filter: ((name)::text = 'Divesh Srivastava'::text)
+               Rows Removed by Filter: 3
+ Planning Time: 0.262 ms
+ Execution Time: 711.757 ms
+(11 rows)
+
+
+2c)
+
+Index erstellen:
+CREATE INDEX i_publ_pubid ON Publ(pubID);
+CREATE INDEX i_auth_pubid ON Auth(pubID);
+
+-- Hash Join ausschalten
+SET enable_hashjoin TO off;
+
+-- Sort‑Merge‑Join ausschalten
+SET enable_mergejoin TO off;
+
+-- Nested Loop aktiv lassen (Standard)
+SET enable_nestloop TO on;
+
+Q1: 
+EXPLAIN ANALYZE
+SELECT name, title
+FROM Auth, Publ
+WHERE Auth.pubID = Publ.pubID;
+
+Ergebnis Q1:
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.43..661190.29 rows=3095201 width=82) (actual time=0.549..823.826 rows=3095201 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..350670.19 rows=1289667 width=82) (actual time=0.141..748.399 rows=1031734 loops=3)
+         ->  Parallel Seq Scan on publ  (cost=0.00..27284.39 rows=513839 width=89) (actual time=0.040..28.662 rows=411071 loops=3)
+         ->  Index Scan using i_auth_pubid on auth  (cost=0.43..0.60 rows=3 width=38) (actual time=0.001..0.001 rows=3 loops=1233214)
+               Index Cond: ((pubid)::text = (publ.pubid)::text)
+ Planning Time: 0.802 ms
+ Execution Time: 919.204 ms
+(9 rows)
+
+Q2:
+EXPLAIN ANALYZE
+SELECT title
+FROM Auth, Publ
+WHERE Auth.pubID = Publ.pubID
+  AND Auth.name = 'Divesh Srivastava';
+
+
+
+Ergebnis Q2:
+
+
+                                        QUERY PLAN
+----------------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.43..44005.79 rows=24 width=67) (actual time=29.956..90.337 rows=183 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..43003.39 rows=10 width=67) (actual time=15.412..72.343 rows=61 loops=3)
+         ->  Parallel Seq Scan on auth  (cost=0.00..42918.84 rows=10 width=23) (actual time=15.087..68.631 rows=61 loops=3)
+               Filter: ((name)::text = 'Divesh Srivastava'::text)
+               Rows Removed by Filter: 1031673
+         ->  Index Scan using i_publ_pubid on publ  (cost=0.43..8.45 rows=1 width=89) (actual time=0.060..0.060 rows=1 loops=183)
+               Index Cond: ((pubid)::text = (auth.pubid)::text)
+ Planning Time: 0.130 ms
+ Execution Time: 90.368 ms
+(11 rows)
+
