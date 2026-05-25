@@ -150,7 +150,7 @@ def main():
     set_join_switches(conn) # Reset to all on
     execute_sql(conn, "SET statement_timeout = '0';") 
     conn.close()
-    print("\nBenchmarking complete. All 4 Tasks are fully merged and safe to run!")
+    print("\n Benchmarking complete! Results for all 4 tasks are saved in 'assignment4_results.txt'.")
 
 if __name__ == "__main__":
     main()
