@@ -29,7 +29,17 @@
 
 Describe your experimental setup in a few lines.
 
-\youranswerhere{}
+\youranswerhere{We performed the experiments using a PostgreSQL database running on a local machine. The DBLP dataset (dblp.zip) was downloaded and imported into two tables: Auth (name, pubID) and Publ (pubID, type, title, booktitle, year, publisher) as specified in the assignment.
+
+To study the join strategies, we used EXPLAIN ANALYZE on the two given queries and recorded the execution time and query plan. The workload was divided among the team:
+
+one member was responsible for hash join and for analysing which strategy the system proposes in different index settings (no index, unique non‑clustering index on Publ.pubID, and clustering indexes),
+
+one member focused on sort‑merge join,
+
+and one member tested indexed nested loop join in three configurations: index only on Publ.pubID (2a), only on Auth.pubID (2b), and on both attributes (2c).
+
+Throughout the experiments, we controlled the join strategy using SET enable_hashjoin, SET enable_mergejoin, and SET enable_nestloop. Queries that would take longer than approximately 10 minutes were noted as too slow, but all tested queries finished within a few seconds.}
 
 \subsection*{Join Strategies Proposed by System}
 
