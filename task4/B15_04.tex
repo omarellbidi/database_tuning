@@ -15,10 +15,10 @@
   {\large Database Tuning}}
 
 \author{
-  Group Name (e.g. A1, B5, B3) \\
-  \large Lastname1 Firstname1, StudentID1 \\
-  \large Lastname2 Firstname2, StudentID2 \\
-  \large Lastname3 Firstname3, StudentID3
+  Group Name B15 \\
+  \large El Lbidi Omar, 12046411 \\
+  \large Kitajima Mitsuhiro, 12314100 \\
+  \large Sadykova Nargiz, 12129337
 }
 
 \begin{document}
@@ -143,9 +143,9 @@ Index Cond: ((pubid)::text = (a.pubid)::text)
   \begin{tabular}{l|r|r}
     Indexes & Response time Q1 [ms] & Response time Q2 [ms] \tabularnewline
     \hline
-    index on \texttt{Publ.pubID} & \ldots & \ldots \tabularnewline
-    index on \texttt{Auth.pubID} & \ldots & \ldots \tabularnewline
-    index on \texttt{Publ.pubID} and \texttt{Auth.pubID} & \ldots & \ldots
+    index on \texttt{Publ.pubID} & 1773.388 & 98.637 \tabularnewline
+    index on \texttt{Auth.pubID} & 931.636 & 711.757 \tabularnewline
+    index on \texttt{Publ.pubID} and \texttt{Auth.pubID} & 919.204  & 90.368 
         \tabularnewline
   \end{tabular}
 \end{table}
@@ -156,28 +156,124 @@ Index on \texttt{Publ.pubID} (Q1/Q2):
 
 {\small
 \parskip0pt\begin{verbatim}
-[Your query plans (index on Publ.pubID) go here ...]
+Gather  (cost=1000.43..984789.92 rows=3095201 width=82) 
+(actual time=0.588..1676.811 rows=3095201 loops=1)    
+Workers Planned: 2    
+Workers Launched: 2    
+ ->  Nested Loop  (cost=0.43..674269.82 rows=1289667 width=82) 
+(actual time=0.192..1600.375 rows=1031734 loops=3) 
+    ->  Parallel Seq Scan on auth  (cost=0.00..39694.67 rows=1289667 width=38) 
+    (actual time=0.064..71.879 rows=1031734 loops=3)         
+       ->  Index Scan using i_publ_pubid on publ  (cost=0.43..0.48 rows=1 width=89) 
+       (actual time=0.001..0.001 rows=1 loops=3095201)                
+          Index Cond: ((pubid)::text = (auth.pubid)::text)  
+          Planning Time: 0.771 ms  
+          Execution Time: 1773.388 ms (
+          9 rows)
+          
+Gather  (cost=1000.43..44005.79 rows=24 width=67) 
+(actual time=28.612..98.581 rows=183 loops=1)    
+Workers Planned: 2    
+Workers Launched: 2   
+ ->  Nested Loop  (cost=0.43..43003.39 rows=10 width=67) 
+ (actual time=14.297..82.129 rows=61 loops=3)         
+  ->  Parallel Seq Scan on auth  (cost=0.00..42918.84 rows=10 width=23) 
+  (actual time=14.100..81.441 rows=61 loops=3)                
+  Filter: ((name)::text = 'Divesh Srivastava'::text)                
+  Rows Removed by Filter: 1031673          
+  ->  Index Scan using i_publ_pubid on publ  (cost=0.43..8.45 rows=1 width=89) 
+  (actual time=0.009..0.010 rows=1 loops=183)               
+   Index Cond: ((pubid)::text = (auth.pubid)::text) 
+    Planning Time: 1.599 ms  
+    Execution Time: 98.637 ms 
+    (11 rows) 
+
 \end{verbatim}}
 
 Index on \texttt{Auth.pubID} (Q1/Q2):
 
 {\small
 \parskip0pt\begin{verbatim}
-[Your query plans (index on Auth.pubID) go here ...]
+Gather  (cost=1000.43..661190.29 rows=3095201 width=82) 
+ (actual time=0.580..836.262 rows=3095201 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..350670.19 rows=1289667 width=82) 
+   (actual time=0.149..765.593 rows=1031734 loops=3)
+         ->  Parallel Seq Scan on publ  (cost=0.00..27284.39 rows=513839 width=89) 
+         (actual time=0.050..28.758 rows=411071 loops=3)
+         ->  Index Scan using i_auth_pubid on auth  (cost=0.43..0.60 rows=3 width=38) 
+         (actual time=0.001..0.001 rows=3 loops=1233214)
+               Index Cond: ((pubid)::text = (publ.pubid)::text)
+ Planning Time: 0.690 ms
+ Execution Time: 931.636 ms
+(9 rows)
+
+Gather  (cost=1000.43..345249.61 rows=24 width=67) 
+(actual time=94.714..711.709 rows=183 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..344247.21 rows=10 width=67) 
+   (actual time=80.173..694.104 rows=61 loops=3)
+         ->  Parallel Seq Scan on publ  (cost=0.00..27284.39 rows=513839 width=89) 
+         (actual time=0.061..29.930 rows=411071 loops=3)
+         ->  Index Scan using i_auth_pubid on auth  (cost=0.43..0.61 rows=1 width=23) 
+         (actual time=0.001..0.001 rows=0 loops=1233214)
+               Index Cond: ((pubid)::text = (publ.pubid)::text)
+               Filter: ((name)::text = 'Divesh Srivastava'::text)
+               Rows Removed by Filter: 3
+ Planning Time: 0.262 ms
+ Execution Time: 711.757 ms
+(11 rows)
+
 \end{verbatim}}
 
 Index on \texttt{Auth.pubID} and \texttt{Auth.pubID} (Q1/Q2):
 
 {\small
 \parskip0pt\begin{verbatim}
-[Your query plans (index on Publ.pubID and Auth.pubID) go here ...]
+Gather  (cost=1000.43..661190.29 rows=3095201 width=82) 
+(actual time=0.549..823.826 rows=3095201 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..350670.19 rows=1289667 width=82) 
+   (actual time=0.141..748.399 rows=1031734 loops=3)
+         ->  Parallel Seq Scan on publ  (cost=0.00..27284.39 rows=513839 width=89) 
+         (actual time=0.040..28.662 rows=411071 loops=3)
+         ->  Index Scan using i_auth_pubid on auth  (cost=0.43..0.60 rows=3 width=38) 
+         (actual time=0.001..0.001 rows=3 loops=1233214)
+               Index Cond: ((pubid)::text = (publ.pubid)::text)
+ Planning Time: 0.802 ms
+ Execution Time: 919.204 ms
+(9 rows)
+
+Gather  (cost=1000.43..44005.79 rows=24 width=67) 
+(actual time=29.956..90.337 rows=183 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   ->  Nested Loop  (cost=0.43..43003.39 rows=10 width=67) 
+   (actual time=15.412..72.343 rows=61 loops=3)
+         ->  Parallel Seq Scan on auth  (cost=0.00..42918.84 rows=10 width=23) 
+         (actual time=15.087..68.631 rows=61 loops=3)
+               Filter: ((name)::text = 'Divesh Srivastava'::text)
+               Rows Removed by Filter: 1031673
+         ->  Index Scan using i_publ_pubid on publ  (cost=0.43..8.45 rows=1 width=89) 
+         (actual time=0.060..0.060 rows=1 loops=183)
+               Index Cond: ((pubid)::text = (auth.pubid)::text)
+ Planning Time: 0.130 ms
+ Execution Time: 90.368 ms
+(11 rows)
 \end{verbatim}}
 
 \paragraph{Discussion}
 
 Discuss your observations. Are the response times expected? Why (not)?
 
-\youranswerhere{}
+\youranswerhere{The response times are mostly expected for indexed nested loop join. In all configurations (2a, 2b, 2c), the query plan shows a Nested Loop where the inner relation is accessed via an index on pubID, and the outer relation is scanned sequentially. This matches the theory that indexed nested loop join is efficient when the inner relation is indexed and the outer relation is reasonably small or selective.
+
+For Q1 (without filter), configuration 2a is slower than 2b and 2c, which is expected because in 2a the larger relation Auth becomes the outer relation. In 2b and 2c, Publ is used as the outer relation and Auth as the inner one, which slightly reduces the number of loop iterations. The small difference between 2b and 2c is also expected, since adding a second index does not significantly reduce the number of iterations when the inner relation is already indexed.
+
+For Q2 (with Auth.name = 'Divesh Srivastava'), the execution times of 2a and 2c are much lower than Q1, which is expected because the filter strongly reduces the number of outer rows. The optimizer only needs to perform a small number of fast index‑lookups on Publ.pubID. In contrast, 2b is slower because the index is on Auth.pubID and Publ serves as the outer relation; the join then iterates over many rows in Publ and performs many index‑searches, even though the result set is small. This shows that indexed nested loop join performs best when the inner relation is indexed and the outer relation is small or highly selective.}
 
 \subsection*{Sort-Merge Join}
 
@@ -284,7 +380,7 @@ The INLJ variant with a \texttt{Publ.pubID} index remains the fastest for Q2 bec
 
 \subsection*{Time Spent on this Assignment}
 
-Time in hours per person: \textbf{XXX}
+Time in hours per person: \textbf{El Lbidi Omar: ,Kitajima Mitsuhiro: ,Sadykova Nargiz: 3 Std.}
 
 \subsection*{References}
 
