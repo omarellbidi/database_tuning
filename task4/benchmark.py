@@ -86,11 +86,9 @@ def main():
 
         drop_all_indexes(conn) # Clean up
 
-
         # ==========================================
         # TASK 2: Forced Indexed Nested Loop Join 
         # ==========================================
-        
         f.write("\n\n>>> TASK 2: FORCED INDEXED NESTED LOOP JOIN\n")
         set_join_switches(conn, nestloop='on', mergejoin='off', hashjoin='off')
 
@@ -135,7 +133,6 @@ def main():
         for q_name, sql in QUERIES.items():
             run_explain_analyze(conn, "3c: SMJ - Two Clustered", q_name, sql, f)
 
-
         # ==========================================
         # TASK 4: Forced Hash Join 
         # ==========================================
@@ -147,10 +144,13 @@ def main():
         for q_name, sql in QUERIES.items():
             run_explain_analyze(conn, "4a: HJ - No Index", q_name, sql, f)
 
-        # Reset table and runtime configs
-        set_join_switches(conn) # Reset to all on
-        drop_all_indexes(conn) # Clean up
-        
+  
+    # Reset table and runtime configs
+    drop_all_indexes(conn) 
+    set_join_switches(conn) # Reset to all on
+    execute_sql(conn, "SET statement_timeout = '0';") 
+    conn.close()
+    print("\nBenchmarking complete. All 4 Tasks are fully merged and safe to run!")
 
 if __name__ == "__main__":
     main()
