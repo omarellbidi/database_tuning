@@ -17,7 +17,7 @@
 \author{
   Group Name B15 \\
   \large El Lbidi Omar, 12046411 \\
-  \large Kitajima Mitsuhiro, 12314106 \\
+  \large Kitajima Mitsuhiro, 12314100 \\
   \large Sadykova Nargiz, 12129337
 }
 
@@ -33,9 +33,9 @@ Describe your experimental setup in a few lines.
 
 To study the join strategies, we used EXPLAIN ANALYZE on the two given queries and recorded the execution time and query plan. The workload was divided among the team:
 
-one member was responsible for hash join and for analysing which strategy the system proposes in different index settings (no index, unique non‑clustering index on Publ.pubID, and clustering indexes),
+one member was responsible for hash join and for analysing which strategy the system proposes in different index settings (no index, unique non-clustering index on Publ.pubID, and clustering indexes),
 
-one member focused on sort‑merge join,
+one member focused on sort-merge join,
 
 and one member tested indexed nested loop join in three configurations: index only on Publ.pubID (2a), only on Auth.pubID (2b), and on both attributes (2c).
 
@@ -192,12 +192,11 @@ Workers Launched: 2
   Filter: ((name)::text = 'Divesh Srivastava'::text)                
   Rows Removed by Filter: 1031673          
   ->  Index Scan using i_publ_pubid on publ  (cost=0.43..8.45 rows=1 width=89) 
-  (actual time=0.009..0.010 rows=1 loops=183)               
+  (actual time=0.009..0.010 rows=1 loops=183)                
    Index Cond: ((pubid)::text = (auth.pubid)::text) 
     Planning Time: 1.599 ms  
     Execution Time: 98.637 ms 
     (11 rows) 
-
 \end{verbatim}}
 
 Index on \texttt{Auth.pubID} (Q1/Q2):
@@ -235,7 +234,6 @@ Gather  (cost=1000.43..345249.61 rows=24 width=67)
  Planning Time: 0.262 ms
  Execution Time: 711.757 ms
 (11 rows)
-
 \end{verbatim}}
 
 Index on \texttt{Auth.pubID} and \texttt{Auth.pubID} (Q1/Q2):
@@ -283,7 +281,7 @@ Discuss your observations. Are the response times expected? Why (not)?
 
 For Q1 (without filter), configuration 2a is slower than 2b and 2c, which is expected because in 2a the larger relation Auth becomes the outer relation. In 2b and 2c, Publ is used as the outer relation and Auth as the inner one, which slightly reduces the number of loop iterations. The small difference between 2b and 2c is also expected, since adding a second index does not significantly reduce the number of iterations when the inner relation is already indexed.
 
-For Q2 (with Auth.name = 'Divesh Srivastava'), the execution times of 2a and 2c are much lower than Q1, which is expected because the filter strongly reduces the number of outer rows. The optimizer only needs to perform a small number of fast index‑lookups on Publ.pubID. In contrast, 2b is slower because the index is on Auth.pubID and Publ serves as the outer relation; the join then iterates over many rows in Publ and performs many index‑searches, even though the result set is small. This shows that indexed nested loop join performs best when the inner relation is indexed and the outer relation is small or highly selective.}
+For Q2 (with Auth.name = 'Divesh Srivastava'), the execution times of 2a and 2c are much lower than Q1, which is expected because the filter strongly reduces the number of outer rows. The optimizer only needs to perform a small number of fast index-lookups on Publ.pubID. In contrast, 2b is slower because the index is on Auth.pubID and Publ serves as the outer relation; the join then iterates over many rows in Publ and performs many index-searches, even though the result set is small. This shows that indexed nested loop join performs best when the inner relation is indexed and the outer relation is small or highly selective.}
 
 \subsection*{Sort-Merge Join}
 
@@ -294,9 +292,9 @@ For Q2 (with Auth.name = 'Divesh Srivastava'), the execution times of 2a and 2c 
   \begin{tabular}{l|r|r}
     Indexes & Response time Q1 [ms] & Response time Q2 [ms] \tabularnewline
     \hline
-    no index & \ldots & \ldots \tabularnewline
-    two non-clustering indexes & \ldots & \ldots \tabularnewline
-    two clustering indexes & \ldots & \ldots \tabularnewline
+    no index & 5870.384 & 915.547 \tabularnewline
+    two non-clustering indexes & 1511.386 & 520.875 \tabularnewline
+    two clustering indexes & 1547.224 & 516.680 \tabularnewline
   \end{tabular}
 \end{table}
 
@@ -306,26 +304,78 @@ No index (Q1/Q2):
 
 {\small
 \parskip0pt\begin{verbatim}
-[Your query plans (no index) go here ...]
+Gather  (cost=529337.98..867734.46 rows=3095201 width=82) (actual time=3189.068..5807.639 rows=3095201 loops=1)
+ ->  Merge Join  (cost=528337.98..557214.36 rows=1289667 width=82) (actual time=3208.483..5162.323 rows=1031734 loops=3)
+       Merge Cond: ((auth.pubid)::text = (publ.pubid)::text)
+       ->  Sort  (cost=241129.63..244353.80 rows=1289667 width=38) (actual time=577.932..1144.456 rows=1031734 loops=3)
+             Sort Key: auth.pubid
+             Sort Method: external merge  Disk: 50912kB
+             ->  Parallel Seq Scan on auth  (cost=0.00..39705.67 rows=1289667 width=38) (actual time=0.035..48.198 rows=1031734 loops=3)
+       ->  Materialize  (cost=287208.35..293374.42 rows=1233214 width=89) (actual time=2622.676..3343.430 rows=1856558 loops=3)
+             ->  Sort  (cost=287208.35..290291.38 rows=1233214 width=89) (actual time=2622.664..3256.722 rows=1229443 loops=3)
+                   Sort Key: publ.pubid
+                   Sort Method: external merge  Disk: 121608kB
+                   ->  Seq Scan on publ  (cost=0.00..35989.14 rows=1233214 width=89) (actual time=0.055..120.683 rows=1233214 loops=3)
+
+Gather  (cost=170379.57..172951.49 rows=25 width=67) (actual time=600.442..906.918 rows=183 loops=1)
+ ->  Merge Join  (cost=169379.57..171948.99 rows=10 width=67) (actual time=587.182..879.635 rows=61 loops=3)
+       Merge Cond: ((publ.pubid)::text = (auth.pubid)::text)
+       ->  Sort  (cost=103879.98..105164.58 rows=513839 width=89) (actual time=393.779..600.943 rows=409986 loops=3)
+             Sort Key: publ.pubid
+             Sort Method: external merge  Disk: 41976kB
+             ->  Parallel Seq Scan on publ  (cost=0.00..28795.39 rows=513839 width=89) (actual time=0.034..42.740 rows=411071 loops=3)
+       ->  Sort  (cost=65499.59..65499.66 rows=25 width=23) (actual time=165.239..165.245 rows=181 loops=3)
+             Sort Key: auth.pubid
+             Sort Method: quicksort  Memory: 39kB
+             ->  Seq Scan on auth  (cost=0.00..65499.01 rows=25 width=23) (actual time=11.474..164.966 rows=183 loops=3)
+                   Filter: ((name)::text = 'Divesh Srivastava'::text)
 \end{verbatim}}
 
 Two non-clustering indexes (Q1/Q2):
 {\small
 \parskip0pt\begin{verbatim}
-[Your query plans (two non-clustering indexes) go here ...]
+Merge Join  (cost=0.86..220164.13 rows=3095201 width=82) (actual time=0.009..1457.246 rows=3095201 loops=1)
+ Merge Cond: ((publ.pubid)::text = (auth.pubid)::text)
+ ->  Index Scan using publ_pubid_idx on publ  (cost=0.43..68238.64 rows=1233214 width=89) (actual time=0.003..166.956 rows=1233208 loops=1)
+ ->  Index Scan using auth_pubid_idx on auth  (cost=0.43..110152.45 rows=3095201 width=38) (actual time=0.003..235.689 rows=3095201 loops=1)
+
+Merge Join  (cost=43933.22..115254.82 rows=24 width=67) (actual time=101.027..520.852 rows=183 loops=1)
+ Merge Cond: ((publ.pubid)::text = (auth.pubid)::text)
+ ->  Index Scan using publ_pubid_idx on publ  (cost=0.43..68238.64 rows=1233214 width=89) (actual time=0.004..149.084 rows=1229958 loops=1)
+ ->  Sort  (cost=43932.79..43932.85 rows=24 width=23) (actual time=64.819..64.859 rows=183 loops=1)
+       Sort Key: auth.pubid
+       Sort Method: quicksort  Memory: 39kB
+       ->  Gather  (cost=1000.00..43932.24 rows=24 width=23) (actual time=10.350..64.443 rows=183 loops=1)
+             ->  Parallel Seq Scan on auth  (cost=0.00..42929.84 rows=10 width=23) (actual time=4.301..58.337 rows=61 loops=3)
+                   Filter: ((name)::text = 'Divesh Srivastava'::text)
 \end{verbatim}}
 
 Two clustering indexes  (Q1/Q2):
 {\small
 \parskip0pt\begin{verbatim}
-[Your query plans (two clustering indexes) go here ...]
+Merge Join  (cost=0.86..220164.13 rows=3095201 width=82) (actual time=0.012..1492.756 rows=3095201 loops=1)
+ Merge Cond: ((publ.pubid)::text = (auth.pubid)::text)
+ ->  Index Scan using publ_pubid_idx on publ  (cost=0.43..68238.64 rows=1233214 width=89) (actual time=0.005..187.756 rows=1233208 loops=1)
+ ->  Index Scan using auth_pubid_idx on auth  (cost=0.43..110152.45 rows=3095201 width=38) (actual time=0.004..243.334 rows=3095201 loops=1)
+
+Merge Join  (cost=43933.22..115254.82 rows=24 width=67) (actual time=98.568..516.658 rows=183 loops=1)
+ Merge Cond: ((publ.pubid)::text = (auth.pubid)::text)
+ ->  Index Scan using publ_pubid_idx on publ  (cost=0.43..68238.64 rows=1233214 width=89) (actual time=0.003..146.617 rows=1229958 loops=1)
+ ->  Sort  (cost=43932.79..43932.85 rows=24 width=23) (actual time=63.245..63.288 rows=183 loops=1)
+       Sort Key: auth.pubid
+       Sort Method: quicksort  Memory: 39kB
+       ->  Gather  (cost=1000.00..43932.24 rows=24 width=23) (actual time=11.965..62.876 rows=183 loops=1)
+             ->  Parallel Seq Scan on auth  (cost=0.00..42929.84 rows=10 width=23) (actual time=5.447..56.207 rows=61 loops=3)
+                   Filter: ((name)::text = 'Divesh Srivastava'::text)
 \end{verbatim}}
 
 \paragraph{Discussion}
 
 Discuss your observations. Are the response times expected? Why (not)?
 
-\youranswerhere{}
+\youranswerhere{The response times for the Sort-Merge join are exactly as expected. For Q1 (the large Cartesian-like join), the execution without indexes is extremely slow (5870 ms) because the system must perform expensive external disk sorts on both the Auth and Publ tables before it can merge them. Once we introduce two non-clustering indexes, the execution time drops massively to 1511 ms. This is because the planner uses Index Scans to retrieve the data already sorted by pubID, completely avoiding the heavy disk sorting phase. Using clustering indexes yields almost identical times (1547 ms) because the primary requirement for a fast merge join—pre-sorted input—is already fulfilled by the B-Tree index scan.
+
+For Q2 (the selective query), Sort-Merge join is notably inefficient compared to Indexed Nested Loop Join. Even though the filter rapidly reduces the Auth table to just a few rows, the Sort-Merge strategy requires scanning and either sorting or index-scanning the entire 1.2 million rows of the Publ table to perform the merge operation. Because of this, while adding indexes improves the Q2 speed from 915 ms down to ~516 ms, it still cannot compete with the ~67 ms response time of an Indexed Nested Loop Join that simply performs a few rapid point-lookups.}
 
 \subsection*{Hash Join}
 
@@ -365,7 +415,10 @@ Filter: ((name)::text = 'Divesh Srivastava'::text)
 \end{verbatim}}
 
 \paragraph{Discussion}
-The forced hash join was measured with no index present, yielding \textbf{2647\,ms} for Q1 and \textbf{101\,ms} for Q2.
+
+What do you think about the response time of the hash index vs.\ the response times of sort-merge and index nested loop join for each of the queries? Explain.
+
+\youranswerhere{The forced hash join was measured with no index present, yielding \textbf{2647\,ms} for Q1 and \textbf{101\,ms} for Q2.
 
 \textbf{Q1 (full join, no selectivity on \texttt{name}).}
 The hash join (2647\,ms) is the slowest strategy for this query among all variants tested.
@@ -380,11 +433,11 @@ Here the hash join (101\,ms) is competitive and substantially faster than sort-m
 It is also faster than the INLJ variant with only an index on \texttt{Auth.pubID} (926\,ms), although it is slightly slower than INLJ with an index on \texttt{Publ.pubID} or both (55--60\,ms).
 The Parallel Hash Join used for Q2 benefits from parallelism (2 workers): the build phase operates only on the tiny filtered author set ($\approx$183 rows), keeping the hash table entirely in memory (no batching), and the probe side scans \texttt{Publication} in parallel.
 Sort-merge is slower for Q2 because it must sort (or index-scan) the full \texttt{Publication} relation regardless of the name filter, adding significant I/O even when an index on \texttt{pubID} exists.
-The INLJ variant with a \texttt{Publ.pubID} index remains the fastest for Q2 because it probes \texttt{Publication} only for the 183 qualifying author tuples, but the hash join is the better general-purpose choice when no index on \texttt{Publ.pubID} is available.
+The INLJ variant with a \texttt{Publ.pubID} index remains the fastest for Q2 because it probes \texttt{Publication} only for the 183 qualifying author tuples, but the hash join is the better general-purpose choice when no index on \texttt{Publ.pubID} is available.}
 
 \subsection*{Time Spent on this Assignment}
 
-Time in hours per person: \textbf{El Lbidi Omar:, Kitajima Mitsuhiro:3 Std., Sadykova Nargiz: 3 Std.}
+Time in hours per person: \textbf{El Lbidi Omar: 3.5 Std, Kitajima Mitsuhiro: 3 Std, Sadykova Nargiz: 3 Std.}
 
 \subsection*{References}
 
