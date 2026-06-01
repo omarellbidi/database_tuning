@@ -1,6 +1,6 @@
 2a)
 -- non-clustering Index auf Publ.pubID
-CREATE INDEX i_publ_pubid ON Publ(pubID);
+CREATE INDEX publ_pubid_idx ON Publ(pubID);
 
 -- Hash Join ausschalten
 SET enable_hashjoin TO off;
@@ -60,7 +60,7 @@ Execution Time: 98.637 ms
 
 Index erstellen:
 
-CREATE INDEX i_auth_pubid ON Auth(pubID);
+CREATE INDEX auth_pubid_idx ON Auth(pubID);
 
 -- Hash Join ausschalten
 SET enable_hashjoin TO off;
@@ -118,8 +118,8 @@ Ergebnis Q2:
 2c)
 
 Index erstellen:
-CREATE INDEX i_publ_pubid ON Publ(pubID);
-CREATE INDEX i_auth_pubid ON Auth(pubID);
+CREATE INDEX publ_pubid_idx ON Publ(pubID);
+CREATE INDEX auth_pubid_idx ON Auth(pubID);
 
 -- Hash Join ausschalten
 SET enable_hashjoin TO off;
