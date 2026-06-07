@@ -1,0 +1,159 @@
+\documentclass[11pt]{scrartcl}
+
+\usepackage[top=1.5cm]{geometry}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{xcolor}
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0.5em}
+
+\newcommand{\youranswerhere}{[Your answer goes here \ldots]}
+\renewcommand{\thesubsection}{\arabic{subsection}}
+
+\lstdefinestyle{dbtsql}{
+  language=SQL,
+  basicstyle=\small\ttfamily,
+  keywordstyle=\color{magenta!75!black},
+  stringstyle=\color{green!50!black},
+  showspaces=false,
+  showstringspaces=false,
+  commentstyle=\color{gray}}
+
+\title{
+  \textbf{\large Assignment 5} \\
+  Concurrency Tuning \\
+  {\large Database Tuning}}
+
+\author{
+  Group Name (e.g. A1, B5, B3) \\
+  \large Lastname1 Firstname1, StudentID1 \\
+  \large Lastname2 Firstname2, StudentID2 \\
+  \large Lastname3 Firstname3, StudentID3
+}
+
+\begin{document}
+
+\maketitle
+
+\paragraph{Notes}
+
+\begin{itemize}
+  \item You will need to run transactions concurrently using threads in Java. See \\ \url{https://dbresearch.uni-salzburg.at/teaching/2020ss/dbt/account.zip} for an example.
+\end{itemize}
+
+\subsection*{Experimental Setup}
+
+Describe your experimental setup in a few lines.
+
+\youranswerhere{}
+
+\subsection*{Solution (a)}
+
+\paragraph{Read Committed}
+
+Throughput and correctness for solution (a) with isolation level \lstinline[style=dbtsql]{READ COMMITTED}.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c|c|c}
+    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
+      \tabularnewline
+    \hline
+    1 & \ldots & \ldots \tabularnewline
+    2 & \ldots & \ldots \tabularnewline
+    3 & \ldots & \ldots \tabularnewline
+    4 & \ldots & \ldots \tabularnewline
+    5 & \ldots & \ldots \tabularnewline
+  \end{tabular}
+\end{table}
+
+\paragraph{Serializable}
+
+Throughput and correctness for solution (a) with isolation level \lstinline[style=dbtsql]{SERIALIZABLE}.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c|c|c}
+    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
+      \tabularnewline
+    \hline
+    1 & \ldots & \ldots \tabularnewline
+    2 & \ldots & \ldots \tabularnewline
+    3 & \ldots & \ldots \tabularnewline
+    4 & \ldots & \ldots \tabularnewline
+    5 & \ldots & \ldots \tabularnewline
+  \end{tabular}
+\end{table}
+
+\subsection*{Solution (b)}
+
+\paragraph{Read Committed}
+
+Throughput and correctness for solution (b) with isolation level \lstinline[style=dbtsql]{READ COMMITTED}.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c|c|c}
+    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
+      \tabularnewline
+    \hline
+    1 & \ldots & \ldots \tabularnewline
+    2 & \ldots & \ldots \tabularnewline
+    3 & \ldots & \ldots \tabularnewline
+    4 & \ldots & \ldots \tabularnewline
+    5 & \ldots & \ldots \tabularnewline
+  \end{tabular}
+\end{table}
+
+\paragraph{Serializable}
+
+Throughput and correctness for solution (b) with isolation level \lstinline[style=dbtsql]{SERIALIZABLE}.
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c|c|c}
+    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
+      \tabularnewline
+    \hline
+    1 & \ldots & \ldots \tabularnewline
+    2 & \ldots & \ldots \tabularnewline
+    3 & \ldots & \ldots \tabularnewline
+    4 & \ldots & \ldots \tabularnewline
+    5 & \ldots & \ldots \tabularnewline
+  \end{tabular}
+\end{table}
+
+\subsection*{Discussion}
+
+Discuss the outcomes and explain the difference between the isolation levels in PostgreSQL with respect to your experiment.
+
+Explain \textbf{with your own words} how PostgreSQL deals with updates in the different isolation levels, within a transaction and within a single SQL command. Explicitly explain why you got the experimental results for solution (a) and (b), respectively.
+
+\paragraph{Solution (a)}\mbox{}
+
+\youranswerhere{}
+
+\paragraph{Solution (b)}\mbox{}
+
+\youranswerhere{}
+
+\subsection*{Time Spent on this Assignment}
+
+Time in hours per person: \textbf{XXX}
+
+\subsection*{References}
+
+\begin{table}[H]
+  \centering
+  \begin{tabular}{c}
+    \hline
+    \textbf{Important:} Reference your information sources! \tabularnewline
+    Remove this section if you use footnotes to reference your information sources. \tabularnewline
+    \hline
+  \end{tabular}
+\end{table}
+
+\end{document}
