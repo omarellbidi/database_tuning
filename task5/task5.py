@@ -114,9 +114,7 @@ def run_experiments() -> None:
     main_conn = connect()
 
     levels = {
-        "READ UNCOMMITTED": ISOLATION_LEVEL_READ_UNCOMMITTED,
         "READ COMMITTED": ISOLATION_LEVEL_READ_COMMITTED,
-        "REPEATABLE READ": ISOLATION_LEVEL_REPEATABLE_READ,
         "SERIALIZABLE": ISOLATION_LEVEL_SERIALIZABLE
     }
     experiments = [(q_name, QUERIES[q_name], iso_name, iso_const)
@@ -131,10 +129,13 @@ def run_experiments() -> None:
             run_experiment(main_conn, q_name, query, isolation_name, iso_const, i, num_threads)
 
     # Reset to default and run ANALYZE to refresh statistics
-    main_conn.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED; ANALYZE;")
+    with main_conn.cursor() as cur:
+        cur.execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED; ANALYZE;")
+    main_conn.commit()
 
     disconnect(main_conn)
 
 
 if __name__ == "__main__":
+    # usage: python task5.py 
     run_experiments()
