@@ -136,6 +136,6 @@ def run_experiments() -> None:
     disconnect(main_conn)
 
 
-if __name__ == "__main__":
+if __name__ == "__cd main__":
     # usage: python task5.py 
     run_experiments()

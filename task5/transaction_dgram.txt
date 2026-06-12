@@ -1,0 +1,25 @@
+
+READ COMMITED
+--------------------------------------------------------------------------------
+T1                                    T2
+--------------------------------------------------------------------------------
+begin                                   begin
+
+                                        SELECT balance 
+                                        INTO c
+                                        FROM Accounts 
+                                        WHERE account = 0;
+SELECT balance 
+INTO e 
+FROM Accounts       
+WHERE account = 0;                                     
+                                        UPDATE Accounts 
+                                     　　SET balance = c - 1 
+                                        WHERE account = 0;
+UPDATE Accounts 
+! Phantom read occurred: e != c 
+SET balance = e + 1 
+WHERE account = 0;
+
+
+(no transaction conflict with first query block because one employee is accessed only once)

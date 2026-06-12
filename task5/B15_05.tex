@@ -28,8 +28,8 @@
   {\large Database Tuning}}
 
 \author{
-  Group Name (e.g. A1, B5, B3) \\
-  \large Lastname1 Firstname1, StudentID1 \\
+  B15 \\
+  \large Kitajima Mitsuhiro, 12314106 \\
   \large Lastname2 Firstname2, StudentID2 \\
   \large Lastname3 Firstname3, StudentID3
 }
@@ -62,11 +62,11 @@ Throughput and correctness for solution (a) with isolation level \lstinline[styl
     \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
       \tabularnewline
     \hline
-    1 & \ldots & \ldots \tabularnewline
-    2 & \ldots & \ldots \tabularnewline
-    3 & \ldots & \ldots \tabularnewline
-    4 & \ldots & \ldots \tabularnewline
-    5 & \ldots & \ldots \tabularnewline
+    1 & 61.63 & 1 \tabularnewline
+    2 & 112.49 & 0.5 \tabularnewline
+    3 & 166.12 & 0.34 \tabularnewline
+    4 & 212.62 & 0.25 \tabularnewline
+    5 & 240.95 & 0.38\tabularnewline
   \end{tabular}
 \end{table}
 
@@ -80,11 +80,11 @@ Throughput and correctness for solution (a) with isolation level \lstinline[styl
     \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
       \tabularnewline
     \hline
-    1 & \ldots & \ldots \tabularnewline
-    2 & \ldots & \ldots \tabularnewline
-    3 & \ldots & \ldots \tabularnewline
-    4 & \ldots & \ldots \tabularnewline
-    5 & \ldots & \ldots \tabularnewline
+    1 & 63.48 & 1 \tabularnewline
+    2 & 113.10 & 1 \tabularnewline
+    3 & 155.55 & 1 \tabularnewline
+    4 & 175.17 & 1 \tabularnewline
+    5 & 143.41 & 1 \tabularnewline
   \end{tabular}
 \end{table}
 
@@ -100,11 +100,11 @@ Throughput and correctness for solution (b) with isolation level \lstinline[styl
     \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
       \tabularnewline
     \hline
-    1 & \ldots & \ldots \tabularnewline
-    2 & \ldots & \ldots \tabularnewline
-    3 & \ldots & \ldots \tabularnewline
-    4 & \ldots & \ldots \tabularnewline
-    5 & \ldots & \ldots \tabularnewline
+    1 & 54.09 & 1 \tabularnewline
+    2 & 127.69 & 1 \tabularnewline
+    3 & 171.92 & 1 \tabularnewline
+    4 & 210.28 & 1 \tabularnewline
+    5 & 252.79 & 1 \tabularnewline
   \end{tabular}
 \end{table}
 
@@ -118,11 +118,11 @@ Throughput and correctness for solution (b) with isolation level \lstinline[styl
     \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
       \tabularnewline
     \hline
-    1 & \ldots & \ldots \tabularnewline
-    2 & \ldots & \ldots \tabularnewline
-    3 & \ldots & \ldots \tabularnewline
-    4 & \ldots & \ldots \tabularnewline
-    5 & \ldots & \ldots \tabularnewline
+    1 & 66.49 & 1 \tabularnewline
+    2 & 105.31 & 1 \tabularnewline
+    3 & 140.40 & 1 \tabularnewline
+    4 & 168.73 & 1 \tabularnewline
+    5 & 143.01 & 1 \tabularnewline
   \end{tabular}
 \end{table}
 
@@ -134,11 +134,19 @@ Explain \textbf{with your own words} how PostgreSQL deals with updates in the di
 
 \paragraph{Solution (a)}\mbox{}
 
-\youranswerhere{}
+In solution (a), the transactions read the balance into local variables using a \lstinline[style=dbtsql]{SELECT} query, and then update the balance in a separate \lstinline[style=dbtsql]{UPDATE} query.
+\begin{itemize}
+  \item \textbf{Read Committed}: In PostgreSQL, each SQL statement in a transaction runs with a new snapshot of the database. When concurrent transactions run, they can read the same starting balance (e.g., 100) into their local variables. When they execute the update, they overwrite each other's changes using their stale variables. Although row-level locks prevent concurrent updates on the same row, once the lock is released, the blocked transaction proceeds to overwrite the row with its own computed value. This leads to the lost update anomaly, which is why correctness is low (e.g., 0.25--0.50).
+  \item \textbf{Serializable}: Under this isolation level, a transaction-level snapshot is used, and PostgreSQL tracks write dependencies. If a transaction attempts to modify a row that has been updated by another transaction since its snapshot started, the transaction is aborted with a serialization failure. Because our testing harness catches this exception, rolls back, and retries the transaction, no updates are lost (correctness is 1.0). However, the overhead from aborts and retries degrades throughput as concurrency increases.
+\end{itemize}
 
 \paragraph{Solution (b)}\mbox{}
 
-\youranswerhere{}
+In solution (b), the transaction updates the balance directly within a single SQL command.
+\begin{itemize}
+  \item \textbf{Read Committed}: If a row is currently being updated by a concurrent transaction, a transaction executing an \lstinline[style=dbtsql]{UPDATE} statement blocks until the active transaction commits or aborts. If it commits, the blocked transaction re-evaluates the query's \lstinline[style=dbtsql]{WHERE} clause on the new version of the row. Since the clause still matches and the update expression is \lstinline[style=dbtsql]{balance = balance - 1}, it evaluates using the new committed value of the row. This prevents the lost update anomaly, yielding 1.0 correctness and high throughput (as no transactions need to abort).
+  \item \textbf{Serializable}: Similar to solution (a), concurrent updates on the same row (\lstinline[style=dbtsql]{account = 0}) trigger serialization failures, aborting conflicting transactions. The application's retry loop ensures correctness is 1.0, but the serialization conflict overhead results in lower throughput compared to Read Committed.
+\end{itemize}
 
 \subsection*{Time Spent on this Assignment}
 

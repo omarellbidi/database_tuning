@@ -1,0 +1,23 @@
+
+Query      | Isolation       | Concurrent | Throughput (tx/s)    | Correctness
+--------------------------------------------------------------------------------
+query_a    | READ COMMITTED  | 1          | 61.63                | 1.00
+query_a    | READ COMMITTED  | 2          | 112.49               | 0.50
+query_a    | READ COMMITTED  | 3          | 166.12               | 0.34
+query_a    | READ COMMITTED  | 4          | 212.62               | 0.25
+query_a    | READ COMMITTED  | 5          | 240.95               | 0.38
+query_a    | SERIALIZABLE    | 1          | 63.48                | 1.00
+query_a    | SERIALIZABLE    | 2          | 113.10               | 1.00
+query_a    | SERIALIZABLE    | 3          | 155.55               | 1.00
+query_a    | SERIALIZABLE    | 4          | 175.17               | 1.00
+query_a    | SERIALIZABLE    | 5          | 143.41               | 1.00
+query_b    | READ COMMITTED  | 1          | 54.09                | 1.00
+query_b    | READ COMMITTED  | 2          | 127.69               | 1.00
+query_b    | READ COMMITTED  | 3          | 171.92               | 1.00
+query_b    | READ COMMITTED  | 4          | 210.28               | 1.00
+query_b    | READ COMMITTED  | 5          | 252.79               | 1.00
+query_b    | SERIALIZABLE    | 1          | 66.49                | 1.00
+query_b    | SERIALIZABLE    | 2          | 105.31               | 1.00
+query_b    | SERIALIZABLE    | 3          | 140.40               | 1.00
+query_b    | SERIALIZABLE    | 4          | 168.73               | 1.00
+query_b    | SERIALIZABLE    | 5          | 143.01               | 1.00
