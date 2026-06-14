@@ -58,7 +58,9 @@ def create_table(conn: psycopg2.extensions.connection) -> None:
     conn.commit()
 
 ### Transaction operators 
-def transaction(query: str, i: int, isolation_level: int) -> None:
+def transaction(query: str, i: int, isolation_level: int) -> int:
+    rollbacks = 0
+
     while True:
         try:
             conn = get_connection()
@@ -75,9 +77,11 @@ def transaction(query: str, i: int, isolation_level: int) -> None:
             conn.close()
             # Retry on serialization failure or deadlock
             time.sleep(random.uniform(0.001, 0.01))
+            rollbacks += 1
             continue
+    return rollbacks
 
-def run_transactions(num_threads: int, max_concurrent: int, query: str, isolation_level: int) -> float:
+def run_transactions(num_threads: int, max_concurrent: int, query: str, isolation_level: int) -> tuple[float, int]:
     start_time = time.time()
     with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
         futures = {
@@ -86,7 +90,8 @@ def run_transactions(num_threads: int, max_concurrent: int, query: str, isolatio
             for i in range(1, num_threads + 1)
         }
         wait(futures)
-    return time.time() - start_time
+        total_rollbacks = sum(f.result() for f in futures)
+    return time.time() - start_time, total_rollbacks
 
 ## Evaluate correctness
 def check_correctness(conn: psycopg2.extensions.connection) -> float:
@@ -102,10 +107,10 @@ def run_experiment(conn: psycopg2.extensions.connection,
                           isolation_name: str, iso_const: int,
                           max_concurrent: int, num_threads: int) -> None:
     create_table(conn)
-    duration = run_transactions(num_threads, max_concurrent, query, iso_const)
+    duration, total_rollbacks = run_transactions(num_threads, max_concurrent, query, iso_const)
     correctness = check_correctness(conn)
     throughput = num_threads / duration if duration > 0 else 0
-    print(f"{q_name:<10} | {isolation_name:<15} | {max_concurrent:<10} | {throughput:<20.2f} | {correctness:.2f}")
+    print(f"{q_name:<10} | {isolation_name:<15} | {max_concurrent:<10} | {throughput:<20.2f} | {correctness:<11.2f} | {total_rollbacks:<10}")
 
 
 ## Run the transactions
@@ -121,8 +126,8 @@ def run_experiments() -> None:
                    for q_name in ("query_a", "query_b")
                    for iso_name, iso_const in levels.items()]
 
-    print(f"{'Query':<10} | {'Isolation':<15} | {'Concurrent':<10} | {'Throughput (tx/s)':<20} | {'Correctness'}")
-    print("-" * 80)
+    print(f"{'Query':<10} | {'Isolation':<15} | {'Concurrent':<10} | {'Throughput (tx/s)':<20} | {'Correctness':<11} | {'Rollbacks'}")
+    print("-" * 92)
 
     for q_name, query, isolation_name, iso_const in experiments:
         for i in range(1, 6):
@@ -136,6 +141,6 @@ def run_experiments() -> None:
     disconnect(main_conn)
 
 
-if __name__ == "__cd main__":
+if __name__ == "__main__":
     # usage: python task5.py 
     run_experiments()

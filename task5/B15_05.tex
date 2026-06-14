@@ -46,9 +46,10 @@
 
 \subsection*{Experimental Setup}
 
-Describe your experimental setup in a few lines.
-
-\youranswerhere{}
+The experiments were conducted using PostgreSQL (version 14+) running locally, with a Python 3 testing harness utilizing the \lstinline{psycopg2} library. 
+The test database contains an \lstinline{accounts} table with 101 rows: account 0 is initialized with a balance of 100 to act as a shared account, and accounts 1 to 100 are initialized with a balance of 0. 
+We run 100 transactions concurrently using a \lstinline{ThreadPoolExecutor} with varying levels of concurrency (from 1 to 5 concurrent threads). 
+Each transaction performs two balance modifications. Under \lstinline{READ COMMITTED} and \lstinline{SERIALIZABLE} isolation levels, we measure throughput (transactions per second), correctness (the ratio of the expected final balance of the shared account to its actual value), and the total number of transaction rollbacks/retries triggered by serialization failures or deadlocks.
 
 \subsection*{Solution (a)}
 
@@ -58,15 +59,15 @@ Throughput and correctness for solution (a) with isolation level \lstinline[styl
 
 \begin{table}[H]
   \centering
-  \begin{tabular}{c|c|c}
-    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
+  \begin{tabular}{c|c|c|c}
+    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness & Rollbacks
       \tabularnewline
     \hline
-    1 & 61.63 & 1 \tabularnewline
-    2 & 112.49 & 0.5 \tabularnewline
-    3 & 166.12 & 0.34 \tabularnewline
-    4 & 212.62 & 0.25 \tabularnewline
-    5 & 240.95 & 0.38\tabularnewline
+    1 & 43.51 & 1.00 & 0 \tabularnewline
+    2 & 84.71 & 0.50 & 0 \tabularnewline
+    3 & 108.90 & 0.34 & 0 \tabularnewline
+    4 & 145.01 & 0.25 & 0 \tabularnewline
+    5 & 171.49 & 0.26 & 0 \tabularnewline
   \end{tabular}
 \end{table}
 
@@ -76,15 +77,15 @@ Throughput and correctness for solution (a) with isolation level \lstinline[styl
 
 \begin{table}[H]
   \centering
-  \begin{tabular}{c|c|c}
-    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
+  \begin{tabular}{c|c|c|c}
+    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness & Rollbacks
       \tabularnewline
     \hline
-    1 & 63.48 & 1 \tabularnewline
-    2 & 113.10 & 1 \tabularnewline
-    3 & 155.55 & 1 \tabularnewline
-    4 & 175.17 & 1 \tabularnewline
-    5 & 143.41 & 1 \tabularnewline
+    1 & 42.90 & 1.00 & 0 \tabularnewline
+    2 & 83.43 & 1.00 & 11 \tabularnewline
+    3 & 107.75 & 1.00 & 18 \tabularnewline
+    4 & 113.15 & 1.00 & 22 \tabularnewline
+    5 & 115.72 & 1.00 & 37 \tabularnewline
   \end{tabular}
 \end{table}
 
@@ -96,15 +97,15 @@ Throughput and correctness for solution (b) with isolation level \lstinline[styl
 
 \begin{table}[H]
   \centering
-  \begin{tabular}{c|c|c}
-    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
+  \begin{tabular}{c|c|c|c}
+    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness & Rollbacks
       \tabularnewline
     \hline
-    1 & 54.09 & 1 \tabularnewline
-    2 & 127.69 & 1 \tabularnewline
-    3 & 171.92 & 1 \tabularnewline
-    4 & 210.28 & 1 \tabularnewline
-    5 & 252.79 & 1 \tabularnewline
+    1 & 46.06 & 1.00 & 0 \tabularnewline
+    2 & 90.34 & 1.00 & 0 \tabularnewline
+    3 & 127.42 & 1.00 & 0 \tabularnewline
+    4 & 166.51 & 1.00 & 0 \tabularnewline
+    5 & 175.72 & 1.00 & 0 \tabularnewline
   \end{tabular}
 \end{table}
 
@@ -114,15 +115,15 @@ Throughput and correctness for solution (b) with isolation level \lstinline[styl
 
 \begin{table}[H]
   \centering
-  \begin{tabular}{c|c|c}
-    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness
+  \begin{tabular}{c|c|c|c}
+    \#Concurrent Transactions & Throughput [transactions/sec] & Correctness & Rollbacks
       \tabularnewline
     \hline
-    1 & 66.49 & 1 \tabularnewline
-    2 & 105.31 & 1 \tabularnewline
-    3 & 140.40 & 1 \tabularnewline
-    4 & 168.73 & 1 \tabularnewline
-    5 & 143.01 & 1 \tabularnewline
+    1 & 46.27 & 1.00 & 0 \tabularnewline
+    2 & 85.16 & 1.00 & 15 \tabularnewline
+    3 & 115.40 & 1.00 & 19 \tabularnewline
+    4 & 117.92 & 1.00 & 25 \tabularnewline
+    5 & 123.88 & 1.00 & 31 \tabularnewline
   \end{tabular}
 \end{table}
 
@@ -136,9 +137,74 @@ Explain \textbf{with your own words} how PostgreSQL deals with updates in the di
 
 In solution (a), the transactions read the balance into local variables using a \lstinline[style=dbtsql]{SELECT} query, and then update the balance in a separate \lstinline[style=dbtsql]{UPDATE} query.
 \begin{itemize}
-  \item \textbf{Read Committed}: In PostgreSQL, each SQL statement in a transaction runs with a new snapshot of the database. When concurrent transactions run, they can read the same starting balance (e.g., 100) into their local variables. When they execute the update, they overwrite each other's changes using their stale variables. Although row-level locks prevent concurrent updates on the same row, once the lock is released, the blocked transaction proceeds to overwrite the row with its own computed value. This leads to the lost update anomaly, which is why correctness is low (e.g., 0.25--0.50).
+  \item \textbf{Read Committed}: In PostgreSQL, each SQL statement in a transaction runs with a new snapshot of the database. Since the transaction is split into multiple queries across separate DO blocks, it is highly susceptible to phantom read or non-repeatable read anomalies on the shared row (account 0). A transaction can execute the second DO block and read a version of account 0 that has been updated and committed by other concurrent transactions since this transaction began. It then computes a stale balance and overwrites newer, committed updates from other transactions. Although row-level locks prevent concurrent updates on the same row, once the lock is released, the blocked transaction proceeds to overwrite the row with its own incorrectly calculated value. This lost update anomaly directly causes the low correctness (e.g., 0.25--0.50).
   \item \textbf{Serializable}: Under this isolation level, a transaction-level snapshot is used, and PostgreSQL tracks write dependencies. If a transaction attempts to modify a row that has been updated by another transaction since its snapshot started, the transaction is aborted with a serialization failure. Because our testing harness catches this exception, rolls back, and retries the transaction, no updates are lost (correctness is 1.0). However, the overhead from aborts and retries degrades throughput as concurrency increases.
 \end{itemize}
+
+The following diagrams illustrate the transaction execution flow and conflicts under both isolation levels:
+
+\begin{verbatim}
+READ COMMITTED
+----------------------------------------------------------------
+T1                                      T2
+----------------------------------------------------------------
+begin                                   begin
+
+                                        SELECT balance INTO c 
+                                        FROM Accounts 
+                                        WHERE account = 0;
+                                        (c = 100)
+SELECT balance INTO e 
+FROM Accounts 
+WHERE account = 0;
+(e = 100)
+                                        UPDATE Accounts 
+                                        SET balance = c - 1 
+                                        WHERE account = 0;
+                                        (balance set to 99)
+                                        commit / end
+UPDATE Accounts 
+SET balance = e - 1 
+WHERE account = 0;
+-- balance set to 99
+commit / end
+
+(Lost update anomaly occurs because T1 overwrites T2's commit
+using stale data. No serialization conflict occurs under 
+READ COMMITTED.)
+\end{verbatim}
+
+\begin{verbatim}
+SERIALIZABLE
+----------------------------------------------------------------
+T1                                      T2
+----------------------------------------------------------------
+begin                                   begin
+
+                                        SELECT balance INTO c 
+                                        FROM Accounts 
+                                        WHERE account = 0;
+                                        (c = 100)
+SELECT balance INTO e 
+FROM Accounts 
+WHERE account = 0;
+(e = 100)
+                                        UPDATE Accounts 
+                                        SET balance = c - 1 
+                                        WHERE account = 0;
+                                        (balance set to 99)
+                                        commit / end
+UPDATE Accounts 
+SET balance = e - 1 
+WHERE account = 0;
+ERROR: could not serialize access 
+due to concurrent update
+rollback / abort
+
+(Under SERIALIZABLE, PostgreSQL detects the write-write 
+conflict and aborts T1, preventing the lost update. 
+The client application must retry T1.)
+\end{verbatim}
 
 \paragraph{Solution (b)}\mbox{}
 
@@ -150,7 +216,7 @@ In solution (b), the transaction updates the balance directly within a single SQ
 
 \subsection*{Time Spent on this Assignment}
 
-Time in hours per person: \textbf{XXX}
+Time in hours per person: \textbf{M. Kitajima: 3h, }
 
 \subsection*{References}
 
